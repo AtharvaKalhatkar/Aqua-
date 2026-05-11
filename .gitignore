@@ -1,0 +1,50 @@
+# Compiled class files
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven artifacts
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# IDE specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Build outputs
+build_exe/
+build_dist/
+jpackage_build_input/
+package_in/
+
+# Environment configs
+*.properties
+!src/main/resources/**/*.properties
+
+# Installer Toolkits (Heavy)
+wix/
+maven/
+maven_install*/
+
+# Zip Files
+*.zip
+*.rar
+*.7z
