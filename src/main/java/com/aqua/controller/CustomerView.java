@@ -140,7 +140,7 @@ public class CustomerView extends VBox {
 
         TableColumn<Customer, Integer> idCol = new TableColumn<>("ID");
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
-        idCol.setPrefWidth(50);
+        idCol.setPrefWidth(120);
 
         TableColumn<Customer, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -182,7 +182,7 @@ public class CustomerView extends VBox {
             }
         });
 
-        tableView.getColumns().addAll(idCol, nameCol, addressCol, mobileCol, routeCol, emailCol, actionsCol);
+        tableView.getColumns().addAll(nameCol, addressCol, mobileCol, routeCol, emailCol, actionsCol);
 
         tableView.setOnKeyPressed(e -> {
             Customer selected = tableView.getSelectionModel().getSelectedItem();

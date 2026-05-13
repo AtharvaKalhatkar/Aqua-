@@ -330,7 +330,7 @@ public class DeliveryView extends VBox {
             protected void updateItem(Void item, boolean empty) { super.updateItem(item, empty); setGraphic(empty ? null : deleteBtn); }
         });
 
-        deliveryTable.getColumns().addAll(idCol, custCol, dateCol, jarCol, bottleCol, actionsCol);
+        deliveryTable.getColumns().addAll(custCol, dateCol, jarCol, bottleCol, actionsCol);
 
         // Keyboard: Delete key in table
         deliveryTable.setOnKeyPressed(e -> {
@@ -397,5 +397,8 @@ public class DeliveryView extends VBox {
         deliveryTable.setItems(FXCollections.observableArrayList(deliveryService.getDeliveriesByDate(LocalDate.now())));
     }
 
-    public void refreshData() { loadTodayDeliveries(); }
+    public void refreshData() {
+        datePicker.setValue(LocalDate.now());
+        loadTodayDeliveries();
+    }
 }

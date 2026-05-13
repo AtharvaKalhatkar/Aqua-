@@ -31,6 +31,7 @@ public class DashboardView extends VBox {
     private final BillService billService = new BillService();
 
     private Label totalCustomersLabel, todayDeliveriesLabel, monthlyIncomeLabel, pendingBillsLabel;
+    private Label dateSubtitleLabel;
     private VBox todayDeliveriesBox, pendingBillsBox, monthlySummaryBox, routeBreakdownBox;
 
     public DashboardView() {
@@ -50,9 +51,9 @@ public class DashboardView extends VBox {
         VBox left = new VBox(3);
         Label title = new Label("📊 Dashboard");
         title.getStyleClass().add("page-title");
-        Label sub = new Label("Bhairavnath Cool Aqua — " + LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy")));
-        sub.getStyleClass().add("page-subtitle");
-        left.getChildren().addAll(title, sub);
+        dateSubtitleLabel = new Label("Bhairavnath Cool Aqua — " + LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy")));
+        dateSubtitleLabel.getStyleClass().add("page-subtitle");
+        left.getChildren().addAll(title, dateSubtitleLabel);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -60,21 +61,51 @@ public class DashboardView extends VBox {
         VBox right = new VBox(5);
         right.setAlignment(Pos.CENTER_RIGHT);
         
-        javafx.scene.control.Button backupBtn = new javafx.scene.control.Button("💾 Set Backup Folder");
-        backupBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0069b4; -fx-cursor: hand; -fx-font-weight: bold; -fx-font-size: 12px;");
+        javafx.scene.control.Button backupBtn = new javafx.scene.control.Button("💾 Set Backup");
+        backupBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #666; -fx-cursor: hand; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 5 10;");
         backupBtn.setOnAction(e -> {
             javafx.stage.DirectoryChooser chooser = new javafx.stage.DirectoryChooser();
             chooser.setTitle("Select Google Drive or Backup Folder");
             java.io.File dir = chooser.showDialog(this.getScene().getWindow());
             if (dir != null) {
                 java.util.prefs.Preferences.userNodeForPackage(com.aqua.App.class).put("backup_dir", dir.getAbsolutePath());
-                com.aqua.util.AlertUtil.showSuccess("Auto-Backup folder set to:\n" + dir.getAbsolutePath() + "\n\nBackups will be saved here automatically.");
+                com.aqua.util.AlertUtil.showSuccess("Auto-Backup folder set to:\n" + dir.getAbsolutePath());
             }
         });
+
+        javafx.scene.control.Button syncBtn = new javafx.scene.control.Button("🔄 Force Sync");
+        syncBtn.setStyle("-fx-background-color: #0069b4; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 6 12; -fx-background-radius: 6;");
+        syncBtn.setOnAction(e -> {
+            syncBtn.setDisable(true);
+            syncBtn.setText("⌛ Syncing...");
+            
+            javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+                @Override protected Void call() throws Exception {
+                    com.aqua.service.SyncEngine.runSync();
+                    return null;
+                }
+            };
+            task.setOnSucceeded(ev -> {
+                syncBtn.setDisable(false);
+                syncBtn.setText("🔄 Force Sync");
+                refreshData();
+                com.aqua.util.AlertUtil.showSuccess("Cloud Sync Completed Successfully! ✅\nYour computer and phone are now perfectly aligned.");
+            });
+            task.setOnFailed(ev -> {
+                syncBtn.setDisable(false);
+                syncBtn.setText("🔄 Force Sync");
+                Throwable ex = task.getException();
+                com.aqua.util.AlertUtil.showError("Sync Failed", ex != null ? ex.getMessage() : "Unknown communication error.");
+            });
+            new Thread(task).start();
+        });
+
+        HBox actionBox = new HBox(10, backupBtn, syncBtn);
+        actionBox.setAlignment(Pos.CENTER_RIGHT);
         
         Label tip = new Label("Alt+1-5 Navigate | Tab/Enter Form | ↑↓ Lists");
         tip.setStyle("-fx-text-fill: #999; -fx-font-size: 11px;");
-        right.getChildren().addAll(backupBtn, tip);
+        right.getChildren().addAll(actionBox, tip);
 
         headerBox.getChildren().addAll(left, spacer, right);
         getChildren().add(headerBox);
@@ -173,6 +204,9 @@ public class DashboardView extends VBox {
         try {
             LocalDate now = LocalDate.now();
             int m = now.getMonthValue(), y = now.getYear();
+
+            // Auto-advance date subtitle if system clock rolled over
+            dateSubtitleLabel.setText("Bhairavnath Cool Aqua — " + now.format(DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy")));
 
             // Update stat cards
             int totalCust = customerService.getTotalCustomers();

@@ -1,0 +1,134 @@
+/* ===== Dashboard Module ===== */
+const Dashboard = {
+  async load() {
+    try {
+      const today = App.todayStr();
+      // Set formatted current date subtitle forced to India Timezone
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' };
+      const dEl = document.getElementById('dashDate');
+      if (dEl) {
+        dEl.textContent = new Date().toLocaleDateString('en-US', options);
+      }
+
+      // Correct month/year extraction aligned with India Timezone
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', month: 'numeric', year: 'numeric' }).formatToParts(new Date());
+      const month = parseInt(parts.find(p => p.type === 'month').value);
+      const year = parseInt(parts.find(p => p.type === 'year').value);
+
+      // Fetch Stats
+      const [custRes, delRes, billsRes] = await Promise.all([
+        supabase.from('customers').select('id', { count:'exact', head:true }),
+        supabase.from('deliveries').select('id', { count:'exact', head:true }).eq('delivery_date', today),
+        supabase.from('bills').select('*').eq('bill_month', month).eq('bill_year', year)
+      ]);
+
+      const bills = billsRes.data || [];
+
+      // Today's deliveries
+      const { data: todayDels } = await supabase
+        .from('deliveries')
+        .select('*, customers(name)')
+        .eq('delivery_date', today)
+        .order('created_at', { ascending: false });
+
+      // Fetch customer names for pending bills
+      const pending = bills.filter(b => b.status === 'PENDING');
+      let pendingCusts = [];
+      if (pending.length > 0) {
+        const custIds = [...new Set(pending.map(b => b.customer_id))];
+        const { data } = await supabase.from('customers').select('id,name').in('id', custIds);
+        pendingCusts = data || [];
+      }
+
+      // Package data for caching
+      const payload = {
+        totalCustomers: custRes.count || 0,
+        todayDeliveriesCount: delRes.count || 0,
+        bills: bills,
+        todayDels: todayDels || [],
+        pendingCusts: pendingCusts
+      };
+
+      localStorage.setItem('cache_dashboard', JSON.stringify(payload));
+      this.render(payload, false);
+
+    } catch (e) {
+      console.warn('[📶 Offline Dashboard] Attempting to load from memory...');
+      const offlineData = localStorage.getItem('cache_dashboard');
+      if (offlineData) {
+        try {
+          const parsed = JSON.parse(offlineData);
+          this.render(parsed, true);
+          return;
+        } catch(ex) {}
+      }
+      document.getElementById('todayDeliveries').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Offline. No cached data found.</div></div>';
+    }
+  },
+
+  render(data, isOffline) {
+    document.getElementById('statCustomers').textContent = data.totalCustomers;
+    document.getElementById('statDeliveries').textContent = data.todayDeliveriesCount;
+
+    const bills = data.bills || [];
+    const pending = bills.filter(b => b.status === 'PENDING');
+    const totalIncome = bills.reduce((s, b) => s + (b.grand_total || 0), 0);
+    
+    document.getElementById('statPending').textContent = pending.length;
+    document.getElementById('statIncome').textContent = '₹' + Math.round(totalIncome).toLocaleString('en-IN');
+
+    // Render Today Deliveries
+    const todayDiv = document.getElementById('todayDeliveries');
+    document.getElementById('todayCount').textContent = (data.todayDels||[]).length;
+
+    let topHtml = '';
+    if (isOffline) {
+      topHtml = `<div style="background:#f59e0b1c; color:#d97706; border:1px solid #f59e0b50; border-radius:8px; padding:8px; margin-bottom:12px; font-size:11px; text-align:center; font-weight:600;">
+        📴 Showing Stored Offline Copy
+      </div>`;
+    }
+
+    if (!data.todayDels || data.todayDels.length === 0) {
+      todayDiv.innerHTML = topHtml + '<div class="empty-state"><div class="empty-icon">🚚</div><div class="empty-text">No deliveries today yet</div></div>';
+    } else {
+      let html = topHtml;
+      data.todayDels.forEach(d => {
+        const name = d.customers?.name || 'Customer #' + d.customer_id;
+        const color = App.getAvatarColor(name);
+        html += `<div class="list-item">
+          <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
+          <div class="list-content">
+            <div class="list-name">${name}</div>
+            <div class="list-detail">🫙 ${d.jar_qty} Jars · 🍶 ${d.bottle_qty} Bottles</div>
+          </div>
+          <div class="list-right"><div class="list-value">${d.jar_qty + d.bottle_qty}</div><div class="list-sub">items</div></div>
+        </div>`;
+      });
+      todayDiv.innerHTML = html;
+    }
+
+    // Render Pending Bills
+    const pendDiv = document.getElementById('pendingBillsList');
+    if (pending.length === 0) {
+      pendDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">All bills paid this month!</div></div>';
+    } else {
+      const custMap = {};
+      (data.pendingCusts||[]).forEach(c => custMap[c.id] = c.name);
+
+      let html = '';
+      pending.forEach(b => {
+        const name = custMap[b.customer_id] || 'Customer #' + b.customer_id;
+        const color = App.getAvatarColor(name);
+        html += `<div class="list-item" onclick="App.navigate('Bills')">
+          <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
+          <div class="list-content">
+            <div class="list-name">${name}</div>
+            <div class="list-detail"><span class="badge badge-pending">⏳ Pending</span></div>
+          </div>
+          <div class="list-right"><div class="list-value text-orange">₹${Math.round(b.grand_total).toLocaleString('en-IN')}</div></div>
+        </div>`;
+      });
+      pendDiv.innerHTML = html;
+    }
+  }
+};

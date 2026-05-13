@@ -2,8 +2,10 @@ package com.aqua.controller;
 
 import com.aqua.model.Customer;
 import com.aqua.model.Delivery;
+import com.aqua.model.Bill;
 import com.aqua.service.CustomerService;
 import com.aqua.service.DeliveryService;
+import com.aqua.service.BillService;
 import com.aqua.util.AlertUtil;
 import com.aqua.util.ExcelExporter;
 
@@ -33,10 +35,16 @@ public class ReportsView extends VBox {
 
     private final DeliveryService deliveryService = new DeliveryService();
     private final CustomerService customerService = new CustomerService();
+    private final BillService billService = new BillService();
     private ComboBox<String> monthCombo, routeCombo;
     private ComboBox<Integer> yearCombo;
     private TableView<String[]> registerTable;
-    private Label summaryLabel;
+    
+    // Stat dashboard components
+    private HBox summaryStatsBox;
+    private Label jarStatLabel, botStatLabel, combStatLabel;
+    private Label combStatTitle;
+    private VBox combStatCard;
 
     public ReportsView() {
         setPadding(new Insets(25));
@@ -90,10 +98,6 @@ public class ReportsView extends VBox {
         excelBtn.setStyle("-fx-background-color: linear-gradient(to bottom, #27ae60, #1e8449);");
         excelBtn.setOnAction(e -> exportExcel());
 
-        summaryLabel = new Label("");
-        summaryLabel.setFont(Font.font("System", FontWeight.SEMI_BOLD, 12));
-        summaryLabel.setStyle("-fx-text-fill: #555;");
-
         row.getChildren().addAll(
             new Label("Month:") {{ getStyleClass().add("form-label"); }}, monthCombo,
             new Label("Year:") {{ getStyleClass().add("form-label"); }}, yearCombo,
@@ -105,9 +109,9 @@ public class ReportsView extends VBox {
     }
 
     private void buildRegisterTable() {
-        VBox tableBox = new VBox(8);
+        VBox tableBox = new VBox(15);
         tableBox.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),8,0,0,2);");
-        tableBox.setPadding(new Insets(15));
+        tableBox.setPadding(new Insets(18));
         VBox.setVgrow(tableBox, Priority.ALWAYS);
 
         registerTable = new TableView<>();
@@ -115,8 +119,43 @@ public class ReportsView extends VBox {
         registerTable.setPlaceholder(new Label("Select month/year and click Load to see the delivery register."));
         VBox.setVgrow(registerTable, Priority.ALWAYS);
 
-        tableBox.getChildren().addAll(registerTable, summaryLabel);
+        // Build Visual Dashboard below table
+        summaryStatsBox = new HBox(20);
+        summaryStatsBox.setAlignment(Pos.CENTER_LEFT);
+        summaryStatsBox.setPadding(new Insets(10, 0, 5, 0));
+
+        jarStatLabel = new Label("0");
+        botStatLabel = new Label("0");
+        combStatLabel = new Label("0");
+
+        combStatCard = createStatCard("📊 GRAND TOTAL UNITS", combStatLabel, "linear-gradient(to right, #2980b9, #2471a3)");
+        combStatTitle = (Label) combStatCard.getChildren().get(0);
+
+        summaryStatsBox.getChildren().addAll(
+            createStatCard("🫙 TOTAL JARS", jarStatLabel, "linear-gradient(to right, #e67e22, #d35400)"),
+            createStatCard("🍶 TOTAL BOTTLES", botStatLabel, "linear-gradient(to right, #27ae60, #1e8449)"),
+            combStatCard
+        );
+
+        tableBox.getChildren().addAll(registerTable, summaryStatsBox);
         getChildren().add(tableBox);
+    }
+
+    private VBox createStatCard(String title, Label valueLabel, String gradient) {
+        VBox card = new VBox(4);
+        card.setMinWidth(180);
+        card.setPadding(new Insets(12, 18, 12, 18));
+        card.setStyle("-fx-background-color: " + gradient + "; -fx-background-radius: 10;");
+        
+        Label titleLabel = new Label(title);
+        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 10));
+        titleLabel.setStyle("-fx-text-fill: rgba(255,255,255,0.8);");
+
+        valueLabel.setFont(Font.font("System", FontWeight.BLACK, 24));
+        valueLabel.setStyle("-fx-text-fill: white;");
+
+        card.getChildren().addAll(titleLabel, valueLabel);
+        return card;
     }
 
     private int getMonth() { return monthCombo.getSelectionModel().getSelectedIndex() + 1; }
@@ -136,8 +175,17 @@ public class ReportsView extends VBox {
             customers = customerService.getAllCustomers();
         }
 
-        // Get all deliveries for this month
+        // Get all deliveries and bills for this month
         List<Delivery> deliveries = deliveryService.getDeliveriesByMonth(month, year);
+        List<Bill> bills = billService.getBillsByMonth(month, year);
+
+        // Build Bill Lookup: customerId -> moneyAmount
+        Map<Integer, Double> billLookup = new HashMap<>();
+        double grandMoney = 0.0;
+        for (Bill b : bills) {
+            billLookup.put(b.getCustomerId(), billLookup.getOrDefault(b.getCustomerId(), 0.0) + b.getGrandTotal());
+            grandMoney += b.getGrandTotal();
+        }
 
         // Build lookup: customerId -> { day -> "jars/bottles" }
         Map<Integer, Map<Integer, int[]>> lookup = new HashMap<>();
@@ -156,11 +204,36 @@ public class ReportsView extends VBox {
         srCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[0]));
         srCol.setPrefWidth(40);
         srCol.setStyle("-fx-alignment: CENTER;");
+        srCol.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setText(null); setStyle(""); return; }
+                setText(item);
+                String[] row = getTableRow().getItem();
+                if (row != null && "🏆 GRAND TOTAL".equals(row[1])) {
+                    setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-background-color: #f1f3f5;");
+                } else {
+                    setStyle("-fx-alignment: CENTER;");
+                }
+            }
+        });
 
         TableColumn<String[], String> nameCol = new TableColumn<>("Customer");
         nameCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[1]));
         nameCol.setPrefWidth(160);
         nameCol.setMinWidth(140);
+        nameCol.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setText(null); setStyle(""); return; }
+                setText(item);
+                if ("🏆 GRAND TOTAL".equals(item)) {
+                    setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #f1f3f5;");
+                } else {
+                    setStyle("-fx-font-weight: bold;");
+                }
+            }
+        });
 
         registerTable.getColumns().addAll(srCol, nameCol);
 
@@ -177,12 +250,23 @@ public class ReportsView extends VBox {
             dayCol.setCellFactory(col -> new TableCell<>() {
                 @Override protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
+                    String[] row = getTableRow().getItem();
+                    boolean isTotalRow = row != null && "🏆 GRAND TOTAL".equals(row[1]);
+                    
                     if (empty || item == null || item.isEmpty()) {
                         setText("-");
-                        setStyle("-fx-alignment: CENTER; -fx-text-fill: #ccc; -fx-font-size: 10px;");
+                        if (isTotalRow) {
+                            setStyle("-fx-alignment: CENTER; -fx-text-fill: #bbb; -fx-background-color: #fdfefe;");
+                        } else {
+                            setStyle("-fx-alignment: CENTER; -fx-text-fill: #ccc; -fx-font-size: 10px;");
+                        }
                     } else {
                         setText(item);
-                        setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #0069b4; -fx-font-size: 11px;");
+                        if (isTotalRow) {
+                            setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-background-color: #fdfefe;");
+                        } else {
+                            setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #0069b4; -fx-font-size: 11px;");
+                        }
                     }
                 }
             });
@@ -192,6 +276,7 @@ public class ReportsView extends VBox {
         // Total columns
         int totalJarIdx = daysInMonth + 2;
         int totalBotIdx = daysInMonth + 3;
+        int totalAmtIdx = daysInMonth + 4;
 
         TableColumn<String[], String> totJarCol = new TableColumn<>("Jars");
         totJarCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[totalJarIdx]));
@@ -200,8 +285,14 @@ public class ReportsView extends VBox {
         totJarCol.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty ? null : item);
-                setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #e67e22;");
+                if (empty || item == null) { setText(null); setStyle(""); return; }
+                setText(item);
+                String[] row = getTableRow().getItem();
+                if (row != null && "🏆 GRAND TOTAL".equals(row[1])) {
+                    setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: white; -fx-background-color: #e67e22;");
+                } else {
+                    setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #e67e22;");
+                }
             }
         });
 
@@ -212,24 +303,62 @@ public class ReportsView extends VBox {
         totBotCol.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty ? null : item);
-                setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
+                if (empty || item == null) { setText(null); setStyle(""); return; }
+                setText(item);
+                String[] row = getTableRow().getItem();
+                if (row != null && "🏆 GRAND TOTAL".equals(row[1])) {
+                    setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: white; -fx-background-color: #27ae60;");
+                } else {
+                    setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
+                }
             }
         });
 
-        registerTable.getColumns().addAll(totJarCol, totBotCol);
+        TableColumn<String[], String> totAmtCol = new TableColumn<>("Amount (₹)");
+        totAmtCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue()[totalAmtIdx]));
+        totAmtCol.setPrefWidth(80);
+        totAmtCol.setStyle("-fx-alignment: CENTER;");
+        totAmtCol.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setText(null); setStyle(""); return; }
+                String[] row = getTableRow().getItem();
+                
+                if ("₹0".equals(item)) {
+                    setText("-");
+                    if (row != null && "🏆 GRAND TOTAL".equals(row[1])) {
+                        setStyle("-fx-alignment: CENTER; -fx-text-fill: #bbb; -fx-background-color: #fdfefe;");
+                    } else {
+                        setStyle("-fx-alignment: CENTER; -fx-text-fill: #ddd;");
+                    }
+                } else {
+                    setText(item);
+                    if (row != null && "🏆 GRAND TOTAL".equals(row[1])) {
+                        setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: white; -fx-background-color: #f39c12;");
+                    } else {
+                        setStyle("-fx-alignment: CENTER; -fx-font-weight: bold; -fx-text-fill: #d35400;");
+                    }
+                }
+            }
+        });
+
+        registerTable.getColumns().addAll(totJarCol, totBotCol, totAmtCol);
 
         // Build data rows
         List<String[]> rows = new ArrayList<>();
         int grandJars = 0, grandBottles = 0;
         int sr = 1;
+        
+        // Accumulators for columnar day-wise sums
+        int[] dailyJars = new int[daysInMonth + 1];
+        int[] dailyBottles = new int[daysInMonth + 1];
 
         for (Customer c : customers) {
             Map<Integer, int[]> dayMap = lookup.getOrDefault(c.getId(), Collections.emptyMap());
             // Only show customers who have deliveries (or show all if you want)
             if (dayMap.isEmpty()) continue;
 
-            String[] row = new String[daysInMonth + 4]; // sr + name + days + totalJars + totalBottles
+            String[] row = new String[daysInMonth + 5]; // sr + name + days + totalJars + totalBottles + totalAmount
             row[0] = String.valueOf(sr++);
             row[1] = c.getName();
 
@@ -238,6 +367,8 @@ public class ReportsView extends VBox {
                 int[] qty = dayMap.getOrDefault(d, new int[]{0, 0});
                 if (qty[0] > 0 || qty[1] > 0) {
                     row[d + 1] = qty[0] + "/" + qty[1];
+                    dailyJars[d] += qty[0];
+                    dailyBottles[d] += qty[1];
                 } else {
                     row[d + 1] = "";
                 }
@@ -246,15 +377,49 @@ public class ReportsView extends VBox {
             }
             row[totalJarIdx] = String.valueOf(custJars);
             row[totalBotIdx] = String.valueOf(custBottles);
+            
+            double custMoney = billLookup.getOrDefault(c.getId(), 0.0);
+            row[totalAmtIdx] = "₹" + Math.round(custMoney);
 
             grandJars += custJars;
             grandBottles += custBottles;
             rows.add(row);
         }
 
+        // Create 🏆 GRAND TOTAL row at the bottom of the matrix!
+        if (!rows.isEmpty()) {
+            String[] totalRow = new String[daysInMonth + 5];
+            totalRow[0] = "";
+            totalRow[1] = "🏆 GRAND TOTAL";
+            
+            for (int d = 1; d <= daysInMonth; d++) {
+                if (dailyJars[d] > 0 || dailyBottles[d] > 0) {
+                    totalRow[d + 1] = dailyJars[d] + "/" + dailyBottles[d];
+                } else {
+                    totalRow[d + 1] = "";
+                }
+            }
+            totalRow[totalJarIdx] = String.valueOf(grandJars);
+            totalRow[totalBotIdx] = String.valueOf(grandBottles);
+            totalRow[totalAmtIdx] = "₹" + Math.round(grandMoney);
+            rows.add(totalRow);
+        }
+
         registerTable.setItems(FXCollections.observableArrayList(rows));
-        summaryLabel.setText(String.format("%d customers  |  Grand Total — Jars: %d  |  Bottles: %d",
-                rows.size(), grandJars, grandBottles));
+        
+        // Update Visual Stat Dashboard
+        jarStatLabel.setText(String.valueOf(grandJars));
+        botStatLabel.setText(String.valueOf(grandBottles));
+        
+        if (grandMoney > 0) {
+            combStatTitle.setText("💰 GRAND TOTAL REVENUE");
+            combStatLabel.setText("₹" + String.format("%,d", Math.round(grandMoney)));
+            combStatCard.setStyle("-fx-background-color: linear-gradient(to right, #fbc02d, #f57c00); -fx-background-radius: 10;");
+        } else {
+            combStatTitle.setText("📊 GRAND TOTAL UNITS");
+            combStatLabel.setText(String.valueOf(grandJars + grandBottles));
+            combStatCard.setStyle("-fx-background-color: linear-gradient(to right, #2980b9, #2471a3); -fx-background-radius: 10;");
+        }
     }
 
     private void exportExcel() {

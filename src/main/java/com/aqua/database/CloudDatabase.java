@@ -26,19 +26,32 @@ public class CloudDatabase {
     private static Properties loadProperties() {
         Properties props = new Properties();
         File file = new File(CONFIG_FILE);
+        
         if (!file.exists()) {
-            return props;
+            // Bulletproof Fallback: Look in current project directory
+            File localFile = new File("db.properties");
+            if (localFile.exists()) {
+                System.out.println("Loading DB config from Local fallback: " + localFile.getAbsolutePath());
+                file = localFile;
+            } else {
+                System.err.println("CRITICAL: db.properties not found in Home OR Project dir!");
+                return props;
+            }
         }
+
         try (FileInputStream in = new FileInputStream(file)) {
             props.load(in);
         } catch (IOException e) {
-            System.err.println("Failed to read " + CONFIG_FILE);
+            System.err.println("Failed to read database configuration!");
         }
         return props;
     }
 
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
+            // Force runtime driver registration to eliminate passive classpath discovery failure
+            try { Class.forName("org.postgresql.Driver"); } catch (Exception ignored) {}
+
             Properties props = loadProperties();
             String url = props.getProperty("db.url");
             String user = props.getProperty("db.user");

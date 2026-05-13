@@ -105,17 +105,16 @@ public class App extends Application {
             System.err.println("Could not load app icon: " + ex.getMessage());
         }
 
-        // Cloud Database Sync Engine (DISABLED FOR OFFLINE BUILD)
-        /*
+        // Cloud Database Sync Engine — syncs local SQLite → Supabase for mobile app
         try {
             com.aqua.service.SyncEngine.startAutoSync();
+            System.out.println("☁️ Cloud Sync Engine started.");
         } catch (Exception ex) {
-            System.err.println("Sync Engine startup failed: " + ex.getMessage());
+            System.err.println("Sync Engine startup failed (offline mode): " + ex.getMessage());
         }
-        */
 
         primaryStage.setOnCloseRequest(e -> {
-            // com.aqua.service.SyncEngine.stopAutoSync();
+            com.aqua.service.SyncEngine.stopAutoSync();
         });
 
         primaryStage.setScene(scene);
@@ -221,7 +220,7 @@ public class App extends Application {
 
     @Override
     public void stop() { 
-        // com.aqua.service.SyncEngine.stopAutoSync();
+        com.aqua.service.SyncEngine.stopAutoSync();
         DatabaseConnection.closeConnection(); 
     }
     public static void main(String[] args) { launch(args); }

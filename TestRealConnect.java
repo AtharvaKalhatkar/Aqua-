@@ -23,7 +23,15 @@ public class TestRealConnect {
             
             System.out.println("Attempting connection...");
             Connection conn = DriverManager.getConnection(url);
-            System.out.println("SUCCESS! Connected perfectly.");
+            System.out.println("SUCCESS! Connected to local DB.");
+            
+            try(java.sql.Statement st = conn.createStatement()) {
+                java.sql.ResultSet rs = st.executeQuery("SELECT count(*) FROM customers");
+                rs.next(); System.out.println("TOTAL CUSTOMERS: " + rs.getInt(1));
+                
+                rs = st.executeQuery("SELECT count(*) FROM deliveries");
+                rs.next(); System.out.println("TOTAL DELIVERIES: " + rs.getInt(1));
+            }
             conn.close();
             
         } catch (Exception e) {
