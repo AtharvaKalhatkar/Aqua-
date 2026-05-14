@@ -1,10 +1,16 @@
 package com.aqua.database;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * Singleton SQLite connection. DB file created in app directory.
@@ -38,9 +44,45 @@ public class DatabaseConnection {
             if (!initialized) {
                 initializeDatabase();
                 initialized = true;
+                // Run resilient auto-backup asynchronously on first connect to preserve performance!
+                new Thread(DatabaseConnection::triggerAutoBackup).start();
             }
         }
         return connection;
+    }
+
+    private static void triggerAutoBackup() {
+        try {
+            File source = new File(DB_FILE);
+            if (!source.exists()) return;
+
+            String backupDirPath = DB_DIR + File.separator + "backups";
+            File backupDir = new File(backupDirPath);
+            if (!backupDir.exists()) {
+                backupDir.mkdirs();
+            }
+
+            // Generate high-precision timestamped filename
+            String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            File target = new File(backupDirPath + File.separator + "backup_" + stamp + ".db");
+
+            // Asynchronous copy
+            Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("🛡️ System Backup Locked: " + target.getName());
+
+            // Rotation Safeguard: Retain only the last 10 backups to keep disk clean!
+            File[] backupFiles = backupDir.listFiles((dir, name) -> name.startsWith("backup_") && name.endsWith(".db"));
+            if (backupFiles != null && backupFiles.length > 10) {
+                Arrays.sort(backupFiles, Comparator.comparingLong(File::lastModified));
+                for (int i = 0; i < backupFiles.length - 10; i++) {
+                    if (backupFiles[i].delete()) {
+                        System.out.println("🧹 Auto-Pruned Stale Backup: " + backupFiles[i].getName());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Database Backup Safe Hook Encountered: " + e.getMessage());
+        }
     }
 
     private static void initializeDatabase() {

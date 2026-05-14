@@ -2,6 +2,7 @@ package com.aqua;
 
 import com.aqua.controller.*;
 import com.aqua.database.DatabaseConnection;
+import com.aqua.util.AlertUtil;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -37,11 +38,16 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Initialize Database
+        // Initialize Database with High-Resiliency Safeguard
         try {
             com.aqua.database.DatabaseConnection.getConnection();
         } catch (Exception ex) {
-            System.err.println("Database startup error: " + ex.getMessage());
+            System.err.println("Critical Database Lock Alert: " + ex.getMessage());
+            AlertUtil.showError("⚠️ Critical Database Startup Error", 
+                "The local Database Engine could not be loaded.\n\n" +
+                "Reason: " + ex.getMessage() + "\n\n" +
+                "👉 Solution: Ensure that another copy of the Bhairavnath Aqua Software is NOT already running on this computer! Close other windows and try again.");
+            System.exit(1);
         }
 
         // Database connection already initialized above

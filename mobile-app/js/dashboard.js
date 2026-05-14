@@ -1,6 +1,19 @@
 /* ===== Dashboard Module ===== */
 const Dashboard = {
   async load() {
+    // ⚡ Instant Hydration (Stale-While-Revalidate Step 1)
+    let renderedCache = false;
+    const offlineData = localStorage.getItem('cache_dashboard');
+    if (offlineData) {
+      try {
+        const parsed = JSON.parse(offlineData);
+        this.render(parsed, true); // Hydrate the screen instantly with stored data
+        renderedCache = true;
+      } catch (ex) {
+        console.warn("Stale Dashboard Cache corrupt, skipping hydration.");
+      }
+    }
+
     try {
       const today = App.todayStr();
       // Set formatted current date subtitle forced to India Timezone
@@ -15,7 +28,7 @@ const Dashboard = {
       const month = parseInt(parts.find(p => p.type === 'month').value);
       const year = parseInt(parts.find(p => p.type === 'year').value);
 
-      // Fetch Stats
+      // Fetch Fresh Stats from Cloud
       const [custRes, delRes, billsRes] = await Promise.all([
         supabase.from('customers').select('id', { count:'exact', head:true }),
         supabase.from('deliveries').select('id', { count:'exact', head:true }).eq('delivery_date', today),
@@ -49,20 +62,17 @@ const Dashboard = {
         pendingCusts: pendingCusts
       };
 
+      // Save new fresh copy to Local Storage
       localStorage.setItem('cache_dashboard', JSON.stringify(payload));
+      
+      // Repaint with fresh, validated cloud numbers! (Stale-While-Revalidate Step 2)
       this.render(payload, false);
 
     } catch (e) {
-      console.warn('[📶 Offline Dashboard] Attempting to load from memory...');
-      const offlineData = localStorage.getItem('cache_dashboard');
-      if (offlineData) {
-        try {
-          const parsed = JSON.parse(offlineData);
-          this.render(parsed, true);
-          return;
-        } catch(ex) {}
+      console.warn('[📶 Offline Dashboard] Live fetch failed, maintaining cache loop...');
+      if (!renderedCache) {
+        document.getElementById('todayDeliveries').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Offline. No cached data found.</div></div>';
       }
-      document.getElementById('todayDeliveries').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Offline. No cached data found.</div></div>';
     }
   },
 

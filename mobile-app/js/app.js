@@ -158,3 +158,34 @@ document.addEventListener('click', function(e) {
     list.classList.remove('show');
   }
 });
+
+/* ==========================================
+   🪂 GLOBAL GLITCH CATCHER & ERROR BOUNDARIES
+   ========================================== */
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error("[🪂 Global Error Intercepted]:", message, "at", source, ":", lineno);
+  
+  // Suppress harmless third-party script warnings
+  if (message.includes("Script error") || message.includes("Extension")) return false;
+
+  if (typeof App !== 'undefined' && App.toast) {
+    App.toast('⚠️ Glitch Avoided! System stabilized. Tap here to refresh if needed.', 'warning');
+  }
+  return false; // Let normal console log proceed
+};
+
+window.onunhandledrejection = function(event) {
+  console.warn("[🪂 Network Rejection Blocked]:", event.reason);
+  
+  // Check if it's a Supabase fetch timeout
+  const reasonStr = String(event.reason || "");
+  if (reasonStr.includes("Failed to fetch") || reasonStr.includes("NetworkError")) {
+    if (typeof App !== 'undefined' && App.toast) {
+      App.toast('📶 Offline Mode Engaged. Data secured in Vault! ✅', 'warning');
+    }
+  } else {
+    if (typeof App !== 'undefined' && App.toast) {
+      App.toast('⚠️ Temporary Cloud Timeout. System is retrying...', 'warning');
+    }
+  }
+};

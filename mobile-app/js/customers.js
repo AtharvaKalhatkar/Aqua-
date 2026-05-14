@@ -5,15 +5,45 @@ const Customers = {
 
   async load() {
     const div = document.getElementById('customerList');
-    div.innerHTML = '<div class="spinner"></div>';
+    
+    // ⚡ Instant Cache Hydration
+    let hydrated = false;
+    const offline = localStorage.getItem('cache_customers');
+    if (offline) {
+      try {
+        const parsed = JSON.parse(offline);
+        this.allCustomers = parsed || [];
+        this.renderRouteChips();
+        this.renderList(this.allCustomers);
+        hydrated = true;
+      } catch(e) {
+        console.warn("Customer Cache invalid.");
+      }
+    }
+
+    // Only show spinner if there was absolutely NO cached data to show!
+    if (!hydrated) {
+      div.innerHTML = '<div class="spinner"></div>';
+    }
+
     try {
       const { data, error } = await supabase.from('customers').select('*').order('name');
       if (error) throw error;
+      
       this.allCustomers = data || [];
+      
+      // Update Local Storage for the next instant render!
+      localStorage.setItem('cache_customers', JSON.stringify(this.allCustomers));
+      
       this.renderRouteChips();
       this.renderList(this.allCustomers);
     } catch (e) {
-      div.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">' + e.message + '</div></div>';
+      console.warn('[📶 Offline Customers] Failed live fetch:', e.message);
+      if (!hydrated) {
+        div.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Offline. No local data cached yet.</div></div>';
+      } else {
+        App.toast('📶 Offline Mode: Loaded saved customer records.', 'warning');
+      }
     }
   },
 
