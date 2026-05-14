@@ -54,7 +54,8 @@ const Deliveries = {
           return;
         } catch(ex) {}
       }
-      div.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Offline. No cached data found.</div></div>';
+      div.innerHTML = '<div class="empty-state"><i data-lucide="cloud-off" class="empty-icon-vector"></i><div class="empty-text">Network required. Offline history not available.</div></div>';
+      App.refreshIcons();
     }
   },
 
@@ -63,16 +64,16 @@ const Deliveries = {
     document.getElementById('deliveryCount').textContent = (data||[]).length;
 
     if (!data || data.length === 0) {
-      div.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No deliveries found.</div></div>';
+      div.innerHTML = '<div class="empty-state"><i data-lucide="package" class="empty-icon-vector"></i><div class="empty-text">No logistics records logged for this date.</div></div>';
+      App.refreshIcons();
       return;
     }
 
     let totalJ = 0, totalB = 0, html = '';
     
-    // Display offline banner if working from cache
     if (isOffline) {
-      html += `<div style="background:#f59e0b1c; color:#d97706; border:1px solid #f59e0b50; border-radius:8px; padding:10px; margin-bottom:15px; font-size:12px; text-align:center; font-weight:600;">
-        📴 Showing Offline Saved Data
+      html += `<div style="background:rgba(245,158,11,0.08); color:var(--accent-amber); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:10px; margin-bottom:16px; font-size:10px; text-align:center; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <i data-lucide="cloud-off" style="width:12px; height:12px;"></i> SHOWING OFFLINE LOG COPY
       </div>`;
     }
 
@@ -84,21 +85,31 @@ const Deliveries = {
         <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
         <div class="list-content">
           <div class="list-name">${name}</div>
-          <div class="list-detail">🫙 ${d.jar_qty} Jars · 🍶 ${d.bottle_qty} Bottles</div>
+          <div class="list-detail">
+            <i data-lucide="droplets" class="icon-xxs"></i> ${d.jar_qty} Jars &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${d.bottle_qty} Bottles
+          </div>
         </div>
         <div class="list-right">
           <div class="list-value">${d.jar_qty + d.bottle_qty}</div>
-          <div class="list-sub">items</div>
+          <div class="list-sub">total items</div>
         </div>
       </div>`;
     });
 
-    // Summary card
-    html = `<div class="card" style="margin-bottom:12px;border-left:3px solid var(--accent-green)">
-      <div class="flex-between"><span style="font-weight:600">📊 Total: ${data.length} deliveries</span>
-      <span style="font-weight:700;color:var(--accent-green)">🫙 ${totalJ} · 🍶 ${totalB}</span></div></div>` + html;
+    // Elite summary ribbon
+    html = `<div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+      <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+        <i data-lucide="bar-chart-2" style="width:14px; height:14px; color:var(--accent-cyan);"></i> Daily Volume
+      </div>
+      <div style="font-size:13px; font-weight:800; color:var(--text-primary); display:flex; gap:10px;">
+        <span style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="droplets" style="width:12px; height:12px; color:var(--accent-cyan);"></i> ${totalJ}</span>
+        <span style="color:var(--border-slate-bright)">|</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="glass-water" style="width:12px; height:12px; color:var(--accent-violet);"></i> ${totalB}</span>
+      </div>
+    </div>` + html;
     
     div.innerHTML = html;
+    App.refreshIcons();
   },
 
   cachedCusts: [],
@@ -119,36 +130,42 @@ const Deliveries = {
     }
 
     if (!custs || custs.length === 0) {
-      App.toast('Cannot load customers list! Network issue.', 'error');
+      App.toast('Cannot load customers list. Check connectivity.', 'warning');
       return;
     }
     this.cachedCusts = custs;
 
     App.showModal(`
-      <div class="modal-title">➕ New Delivery</div>
+      <div class="modal-title"><i data-lucide="truck"></i> Record Delivery</div>
       <div class="form-group" style="position:relative">
-        <label class="form-label">Customer</label>
-        <input type="text" class="form-input" id="custSearchInput" placeholder="🔍 Type name to search..." autocomplete="off" 
-          onfocus="Deliveries.filterCusts(this.value)" 
-          oninput="Deliveries.filterCusts(this.value)">
+        <label class="form-label">Find Customer Profile</label>
+        <div class="search-bar-pro" style="margin-bottom:0;">
+          <i data-lucide="search" class="search-icon-vector" style="color:var(--accent-cyan)"></i>
+          <input type="text" class="form-input" id="custSearchInput" placeholder="Type to search name or route..." autocomplete="off" 
+            onfocus="Deliveries.filterCusts(this.value)" 
+            oninput="Deliveries.filterCusts(this.value)"
+            style="padding-left:44px;">
+        </div>
         <input type="hidden" id="addDelCustomer">
         <div id="custSuggestions" class="suggestions-list"></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Date</label>
+        <label class="form-label">Date of Drop-off</label>
         <input class="form-input" type="date" id="addDelDate" value="${App.todayStr()}">
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">🫙 Jars</label>
+          <label class="form-label">Jars Dispatched</label>
           <input class="form-input" type="number" id="addDelJars" value="1" min="0" inputmode="numeric">
         </div>
         <div class="form-group">
-          <label class="form-label">🍶 Bottles</label>
+          <label class="form-label">Bottles Dispatched</label>
           <input class="form-input" type="number" id="addDelBottles" value="0" min="0" inputmode="numeric">
         </div>
       </div>
-      <button class="btn btn-success" onclick="Deliveries.save()">✅ Save Delivery</button>
+      <button class="btn btn-primary" onclick="Deliveries.save()">
+        <i data-lucide="check-circle"></i> Save Delivery Log Entry
+      </button>
       <button class="btn btn-outline mt-8" onclick="App.closeModal()">Cancel</button>
     `);
   },
@@ -158,14 +175,14 @@ const Deliveries = {
     const val = q.trim().toLowerCase();
     const matched = this.cachedCusts.filter(c => 
       c.name.toLowerCase().includes(val) || (c.route && c.route.toLowerCase().includes(val))
-    ).slice(0, 10); // Show top 10 results max for mobile speed
+    ).slice(0, 10);
 
     if (matched.length === 0) {
-      list.innerHTML = '<div class="suggestion-item" style="color:var(--text-muted)">No customer found</div>';
+      list.innerHTML = '<div class="suggestion-item" style="color:var(--text-muted)">No match found</div>';
     } else {
       list.innerHTML = matched.map(c => `
         <div class="suggestion-item" onclick="Deliveries.selectCust(${c.id}, '${c.name.replace(/'/g, "\\'")}')">
-          ${c.name} ${c.route ? `<span>(${c.route})</span>` : ''}
+          ${c.name} ${c.route ? `<span>· ${c.route}</span>` : ''}
         </div>
       `).join('');
     }
@@ -184,12 +201,12 @@ const Deliveries = {
     const jars = parseInt(document.getElementById('addDelJars').value) || 0;
     const bottles = parseInt(document.getElementById('addDelBottles').value) || 0;
 
-    if (!customerId || !date) { App.toast('Fill all fields', 'error'); return; }
-    if (jars === 0 && bottles === 0) { App.toast('Enter jar or bottle quantity', 'error'); return; }
+    if (!customerId || !date) { App.toast('Specify customer and date.', 'warning'); return; }
+    if (jars === 0 && bottles === 0) { App.toast('Quantity must be greater than 0.', 'warning'); return; }
 
     try {
       const res = await OfflineVault.safeInsert('deliveries', {
-        id: Math.floor(Date.now() / 1000), // Dynamic High-Entropy Mobile ID
+        id: Math.floor(Date.now() / 1000),
         customer_id: customerId,
         delivery_date: date,
         jar_qty: jars,
@@ -199,11 +216,11 @@ const Deliveries = {
       });
       if (res.error) throw res.error;
       App.closeModal();
-      App.toast('Delivery saved! 🚚');
+      App.toast('Log entry successfully recorded.');
       this.selectedDate = date;
       this.load();
     } catch (e) {
-      App.toast('Error: ' + e.message, 'error');
+      App.toast('Vault Error: ' + e.message, 'warning');
     }
   },
 
@@ -211,24 +228,43 @@ const Deliveries = {
     const { data: d } = await supabase.from('deliveries').select('*, customers(name)').eq('id', id).single();
     if (!d) return;
     App.showModal(`
-      <div class="modal-title">📦 Delivery Details</div>
-      <div class="card">
-        <p style="margin-bottom:8px"><strong>Customer:</strong> ${d.customers?.name || 'N/A'}</p>
-        <p style="margin-bottom:8px"><strong>Date:</strong> ${App.formatDate(d.delivery_date)}</p>
-        <p style="margin-bottom:8px"><strong>🫙 Jars:</strong> ${d.jar_qty}</p>
-        <p><strong>🍶 Bottles:</strong> ${d.bottle_qty}</p>
+      <div class="modal-title"><i data-lucide="file-text"></i> Log Details</div>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.05em; margin-bottom:2px;">Recipient Customer</div>
+          <div style="font-size:14px; font-weight:700; color:var(--text-primary);">${d.customers?.name || 'Unnamed Profile'}</div>
+        </div>
+        
+        <div>
+          <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.05em; margin-bottom:2px;">Drop-off Date</div>
+          <div style="font-size:13px; font-weight:600; color:var(--text-secondary);">${App.formatDate(d.delivery_date)}</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:8px; border-top:1px solid var(--border-slate);">
+          <div>
+            <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px;">Jars</div>
+            <div style="font-size:16px; font-weight:800; color:var(--accent-cyan); display:flex; align-items:center; gap:4px;"><i data-lucide="droplets" style="width:14px; height:14px;"></i> ${d.jar_qty}</div>
+          </div>
+          <div>
+            <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px;">Bottles</div>
+            <div style="font-size:16px; font-weight:800; color:var(--accent-violet); display:flex; align-items:center; gap:4px;"><i data-lucide="glass-water" style="width:14px; height:14px;"></i> ${d.bottle_qty}</div>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-danger mt-8" onclick="Deliveries.delete(${d.id})">🗑️ Delete Delivery</button>
+
+      <button class="btn btn-danger" onclick="Deliveries.delete(${d.id})">
+        <i data-lucide="trash-2"></i> Delete Log Record
+      </button>
       <button class="btn btn-outline mt-8" onclick="App.closeModal()">Close</button>
     `);
   },
 
   async delete(id) {
-    if (!confirm('Delete this delivery?')) return;
+    if (!confirm('Permenantly delete this delivery entry?')) return;
     const { error } = await supabase.from('deliveries').delete().eq('id', id);
-    if (error) { App.toast('Error deleting', 'error'); return; }
+    if (error) { App.toast('Failed to delete.', 'warning'); return; }
     App.closeModal();
-    App.toast('Delivery deleted');
+    App.toast('Log entry removed.');
     this.fetchDeliveries();
   }
 };

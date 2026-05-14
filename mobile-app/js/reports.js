@@ -73,7 +73,8 @@ const Reports = {
       });
 
       if (dels.length === 0) {
-        content.innerHTML = '<div class="empty-state"><div class="empty-icon">📉</div><div class="empty-text">No deliveries logged for this period.</div></div>';
+        content.innerHTML = '<div class="empty-state"><i data-lucide="line-chart" class="empty-icon-vector"></i><div class="empty-text">No ledger logs recorded for this period.</div></div>';
+        App.refreshIcons();
         return;
       }
 
@@ -116,61 +117,63 @@ const Reports = {
           .matrix-wrapper { 
             width: 100%; 
             overflow-x: auto; 
-            background: var(--bg-card); 
-            border: 1px solid var(--border-glass);
+            background: var(--bg-slate); 
+            border: 1px solid var(--border-slate);
             border-radius: 12px;
-            box-shadow: var(--shadow);
           }
           .matrix-table { 
             border-collapse: collapse; 
-            font-size: 12px; 
+            font-size: 11px; 
             white-space: nowrap; 
             width: max-content;
             min-width: 100%;
           }
           .matrix-table th, .matrix-table td {
-            padding: 8px 12px;
-            border-right: 1px solid rgba(255,255,255,0.05);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 8px 10px;
+            border-right: 1px solid var(--border-slate);
+            border-bottom: 1px solid var(--border-slate);
             text-align: center;
+            font-weight: 600;
           }
           .matrix-table th {
-            background: var(--bg-glass);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 10px;
+            background: rgba(255,255,255,0.02);
+            color: var(--text-muted);
+            font-weight: 800;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
           }
-          /* Sticky First Column for Client Name */
+          /* Sticky First Column for Client Name - OLED Integration */
           .sticky-col {
             position: sticky;
             left: 0;
-            background: #151b2c !important;
+            background: #0a0b0d !important;
             z-index: 10;
             text-align: left !important;
             min-width: 120px;
             max-width: 140px;
             overflow: hidden;
             text-overflow: ellipsis;
-            border-right: 1.5px solid var(--border-glass) !important;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+            border-right: 1.5px solid var(--border-slate) !important;
+            font-weight: 700;
           }
-          .day-col { min-width: 40px; }
+          .day-col { min-width: 38px; }
           .active-cell {
             font-weight: 800;
             color: var(--accent-cyan);
-            background: rgba(6, 182, 212, 0.05);
+            background: rgba(0, 229, 255, 0.04);
           }
           .tot-col {
-             background: rgba(255,255,255,0.03);
+             background: rgba(255,255,255,0.02);
              font-weight: 800;
           }
-          .row-accent:nth-child(even) td { background-color: rgba(255,255,255,0.02); }
-          .row-accent:nth-child(even) .sticky-col { background: #181f32 !important; }
+          .row-accent:nth-child(even) td { background-color: rgba(255,255,255,0.01); }
+          .row-accent:nth-child(even) .sticky-col { background: #0e1014 !important; }
         </style>
 
-        <div class="flex-between mb-8" style="font-size:11px; color:var(--text-secondary)">
-          <span>Swipe left/right to scroll days →</span>
-          <span>Total Jars: ${totalJars}</span>
+        <div class="flex-between mb-8" style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted)">
+          <span style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="move-horizontal" style="width:10px; height:10px;"></i> Scroll Matrix</span>
+          <span>Dispatched Jars: ${totalJars}</span>
         </div>
 
         <div class="matrix-wrapper">
@@ -186,7 +189,7 @@ const Reports = {
       }
       
       // Header: Totals
-      html += `<th class="tot-col" style="color:var(--accent-cyan)">JARS</th><th class="tot-col" style="color:var(--accent-green)">BOTL</th><th class="tot-col" style="color:#fbc02d">AMOUNT</th></tr></thead><tbody>`;
+      html += `<th class="tot-col" style="color:var(--accent-cyan)">JARS</th><th class="tot-col" style="color:var(--accent-violet)">BOTL</th><th class="tot-col" style="color:var(--accent-emerald)">REVENUE</th></tr></thead><tbody>`;
 
       // Day-wise column totals
       const dayTotals = {};
@@ -199,7 +202,7 @@ const Reports = {
 
       // Rows
       Object.values(customerMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-        html += `<tr class="row-accent"><td class="sticky-col"><strong>${c.name}</strong></td>`;
+        html += `<tr class="row-accent"><td class="sticky-col">${c.name}</td>`;
         
         // Map of this customer's days for lookup
         const dMap = {};
@@ -215,76 +218,78 @@ const Reports = {
              const val = `${dMap[d].j}/${dMap[d].b}`;
              html += `<td class="active-cell">${val}</td>`;
            } else {
-             html += `<td style="opacity:0.2">—</td>`;
+             html += `<td style="opacity:0.15">—</td>`;
            }
         }
         
-        // Add Totals — Lightning O(1) Direct Lookup
+        // Add Totals
         const amt = billMap[c.cid] || 0;
         const displayAmt = amt > 0 ? `₹${Math.round(amt).toLocaleString('en-IN')}` : `<span style="opacity:0.2">—</span>`;
         
         html += `<td class="tot-col" style="color:var(--accent-cyan)">${c.jars}</td>
-                 <td class="tot-col" style="color:var(--accent-green)">${c.bottles}</td>
-                 <td class="tot-col" style="color:#fbc02d; font-weight:800;">${displayAmt}</td></tr>`;
+                 <td class="tot-col" style="color:var(--accent-violet)">${c.bottles}</td>
+                 <td class="tot-col" style="color:var(--accent-emerald); font-weight:800;">${displayAmt}</td></tr>`;
       });
 
       // 4. Generate Footer Total Row!
       const displayTotalMoney = totalMoney > 0 ? `₹${Math.round(totalMoney).toLocaleString('en-IN')}` : `<span style="opacity:0.2">—</span>`;
       
-      html += `</tbody><tfoot><tr style="background:rgba(255,255,255,0.08); border-top:2px solid var(--accent-cyan)">
-               <td class="sticky-col" style="background:#1c243b !important; color:#fff; font-weight:800;">👑 TOTAL</td>`;
+      html += `</tbody><tfoot><tr style="background:rgba(255,255,255,0.05); border-top:2.5px solid var(--accent-cyan)">
+               <td class="sticky-col" style="background:#000 !important; color:#fff; font-weight:900;">TOTAL</td>`;
       
       // Footer: day-wise columnar totals
       for(let d = 1; d <= daysInMonth; d++) {
         if (dayTotals[d] && (dayTotals[d].j > 0 || dayTotals[d].b > 0)) {
-          html += `<td style="font-weight:800; color:#fff; background:rgba(255,255,255,0.05)">${dayTotals[d].j}/${dayTotals[d].b}</td>`;
+          html += `<td style="font-weight:800; color:#fff; background:rgba(255,255,255,0.03)">${dayTotals[d].j}/${dayTotals[d].b}</td>`;
         } else {
           html += `<td style="opacity:0.2">—</td>`;
         }
       }
       
       // Footer: Absolute Grand Totals
-      html += `<td class="tot-col" style="color:var(--accent-cyan); background:rgba(6,182,212,0.15); font-weight:900; font-size:13px;">${totalJars}</td>
-               <td class="tot-col" style="color:var(--accent-green); background:rgba(16,185,129,0.15); font-weight:900; font-size:13px;">${totalBottles}</td>
-               <td class="tot-col" style="color:#fbc02d; background:rgba(245,158,11,0.15); font-weight:900; font-size:13px;">${displayTotalMoney}</td>
+      html += `<td class="tot-col" style="color:var(--accent-cyan); background:rgba(0,229,255,0.12); font-weight:900; font-size:12px;">${totalJars}</td>
+               <td class="tot-col" style="color:var(--accent-violet); background:rgba(138,43,226,0.12); font-weight:900; font-size:12px;">${totalBottles}</td>
+               <td class="tot-col" style="color:var(--accent-emerald); background:rgba(0,230,118,0.12); font-weight:900; font-size:12px;">${displayTotalMoney}</td>
                </tr></tfoot></table></div>
                
                <!-- Beautiful Summary Footer Panel -->
-               <div class="card" style="margin-top:20px; border-top: 4px solid var(--accent-cyan); background: linear-gradient(135deg, #1e293b, #0f172a);">
-                 <div style="font-weight:bold; margin-bottom:15px; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">📋 Monthly Summary Analytics</div>
-                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                   <div style="background:rgba(6,182,212,0.08); padding:12px; border-radius:8px; text-align:center;">
-                     <div style="font-size:11px; opacity:0.7; margin-bottom:4px;">Total Jars</div>
-                     <div style="font-size:20px; font-weight:800; color:var(--accent-cyan)">${totalJars}</div>
+               <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-top:20px;">
+                 <div style="font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:16px; font-size:11px; display:flex; align-items:center; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--border-slate);">
+                   <i data-lucide="bar-chart-2" style="width:14px; height:14px; color:var(--accent-cyan);"></i> Aggregate Period Metrics
+                 </div>
+                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:16px;">
+                   <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-slate); padding:14px; border-radius:10px;">
+                     <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; display:flex; align-items:center; gap:4px;"><i data-lucide="droplets" style="width:10px; height:10px; color:var(--accent-cyan);"></i> Volume (Jars)</div>
+                     <div style="font-size:22px; font-weight:800; color:var(--accent-cyan)">${totalJars}</div>
                    </div>
-                   <div style="background:rgba(16,185,129,0.08); padding:12px; border-radius:8px; text-align:center;">
-                     <div style="font-size:11px; opacity:0.7; margin-bottom:4px;">Total Bottles</div>
-                     <div style="font-size:20px; font-weight:800; color:var(--accent-green)">${totalBottles}</div>
+                   <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-slate); padding:14px; border-radius:10px;">
+                     <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; display:flex; align-items:center; gap:4px;"><i data-lucide="glass-water" style="width:10px; height:10px; color:var(--accent-violet);"></i> Volume (Bottles)</div>
+                     <div style="font-size:22px; font-weight:800; color:var(--accent-violet)">${totalBottles}</div>
                    </div>
                  </div>`;
                  
       if (totalMoney > 0) {
-        // Mode A: Monetary Analytics activated (end of month)
-        html += `<div style="background:rgba(245,158,11,0.12); padding:18px; border-radius:10px; text-align:center; border:2px solid #f59e0b;">
-                   <div style="font-size:12px; font-weight:bold; color:#fbc02d; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">👑 GRAND TOTAL REVENUE (BILLED)</div>
-                   <div style="font-size:32px; font-weight:900; color:#fff; text-shadow: 0 0 10px rgba(245,158,11,0.4);">₹${Math.round(totalMoney).toLocaleString('en-IN')}</div>
+        html += `<div style="background:rgba(0,230,118,0.03); border:1px solid rgba(0,230,118,0.2); padding:20px; border-radius:12px; text-align:center;">
+                   <div style="font-size:10px; font-weight:800; color:var(--accent-emerald); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Finalized Net Dues</div>
+                   <div style="font-size:32px; font-weight:900; color:#fff; letter-spacing:-0.03em;">₹${Math.round(totalMoney).toLocaleString('en-IN')}</div>
                  </div>`;
       } else {
-        // Mode B: Distribution Volumetric Mode (during physical delivery logging)
-        html += `<div style="background:rgba(6,182,212,0.08); padding:18px; border-radius:10px; text-align:center; border:2px solid rgba(6,182,212,0.3);">
-                   <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">📊 GRAND TOTAL ITEMS (VOLUME)</div>
-                   <div style="font-size:32px; font-weight:900; color:#fff; text-shadow: 0 0 10px rgba(6,182,212,0.3);">${totalJars + totalBottles} Units</div>
+        html += `<div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-slate); padding:20px; border-radius:12px; text-align:center;">
+                   <div style="font-size:10px; font-weight:800; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Gross Quantity Loaded</div>
+                   <div style="font-size:32px; font-weight:900; color:#fff; letter-spacing:-0.02em;">${totalJars + totalBottles} <span style="font-size:14px; opacity:0.5;">items</span></div>
                  </div>`;
       }
       
       html += `</div>`;
                
       content.innerHTML = html;
-      localStorage.setItem(cacheKey, html); // Sync to cache for next instant open!
+      App.refreshIcons();
+      localStorage.setItem(cacheKey, html);
 
     } catch (e) {
       console.error(e);
-      content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to fetch report: ${e.message}</div></div>`;
+      content.innerHTML = `<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Aggregation failure: ${e.message}</div></div>`;
+      App.refreshIcons();
     }
   }
 };

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <meta name="theme-color" content="#0a0e1a">
+  <meta name="theme-color" content="#08080a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Bhairavnath Cool Aqua — Water Delivery Management App">
@@ -11,7 +11,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="css/style.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=16">
+  <!-- Lucide Vector Icons Engine -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div class="app-container">
@@ -24,141 +26,196 @@
           <div class="header-subtitle" id="syncStatus">Connecting...</div>
         </div>
       </div>
-      <button class="header-sync" id="btnSync" onclick="App.syncNow()" title="Sync">🔄</button>
+      <button class="header-sync" id="btnSync" onclick="App.syncNow()" title="Refresh Cloud">
+        <i data-lucide="rotate-cw"></i>
+      </button>
     </header>
 
     <!-- ===== DASHBOARD PAGE ===== -->
     <div class="page active" id="pageDashboard">
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-subtitle" id="dashDate"></p>
-      <div class="stats-grid">
-        <div class="stat-card blue">
-          <div class="stat-icon">👥</div>
-          <div class="stat-value" id="statCustomers">-</div>
-          <div class="stat-label">Customers</div>
-        </div>
-        <div class="stat-card green">
-          <div class="stat-icon">🚚</div>
-          <div class="stat-value" id="statDeliveries">-</div>
-          <div class="stat-label">Today</div>
-        </div>
-        <div class="stat-card orange">
-          <div class="stat-icon">📋</div>
-          <div class="stat-value" id="statPending">-</div>
-          <div class="stat-label">Pending Bills</div>
-        </div>
-        <div class="stat-card purple">
-          <div class="stat-icon">💰</div>
-          <div class="stat-value" id="statIncome">-</div>
-          <div class="stat-label">Monthly</div>
+      <p class="page-date-badge" id="dashDate"></p>
+      
+      <!-- 👑 Executive Hero Card -->
+      <div class="executive-hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-meta">Monthly Business Sales</div>
+        <h1 class="hero-value" id="statIncome">₹-</h1>
+        <div class="hero-footer">
+          <div class="hero-pill">
+            <i data-lucide="calendar" class="icon-xs"></i> Current Month
+          </div>
         </div>
       </div>
-      <div class="section-header">
-        <span class="section-title">🚚 Today's Deliveries</span>
-        <span class="section-badge" id="todayCount">0</span>
+
+      <!-- ⚡ Quick Launchpad (Absolute Beginner Ease) -->
+      <div class="quick-launchpad">
+        <button class="launch-btn primary" onclick="App.onFabClick()">
+          <div class="launch-icon"><i data-lucide="zap"></i></div>
+          <div class="launch-text">
+            <span class="launch-title">Log Delivery</span>
+            <span class="launch-sub">Log jar drop-off</span>
+          </div>
+        </button>
+        <button class="launch-btn secondary" onclick="App.navigate('Customers')">
+          <div class="launch-icon"><i data-lucide="users"></i></div>
+          <div class="launch-text">
+            <span class="launch-title">View Clients</span>
+            <span class="launch-sub">Addresses & Phones</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- 📊 Secondary Tech Metrics -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-val" id="statDeliveries">-</div>
+          <div class="metric-lbl"><i data-lucide="truck" class="icon-xxs"></i> Logged Today</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="statPending">-</div>
+          <div class="metric-lbl"><i data-lucide="clock" class="icon-xxs"></i> Unpaid Bills</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="statCustomers">-</div>
+          <div class="metric-lbl"><i data-lucide="user-check" class="icon-xxs"></i> Total Clients</div>
+        </div>
+      </div>
+
+      <!-- Interactive Listings -->
+      <div class="section-head-pro">
+        <h3>Today's Deliveries</h3>
+        <span class="head-badge" id="todayCount">0</span>
       </div>
       <div id="todayDeliveries"><div class="spinner"></div></div>
 
-      <div class="section-header mt-16">
-        <span class="section-title">⚠️ Pending Bills</span>
+      <div class="section-head-pro mt-20">
+        <h3>Pending Invoices</h3>
       </div>
       <div id="pendingBillsList"><div class="spinner"></div></div>
     </div>
 
     <!-- ===== DELIVERIES PAGE ===== -->
     <div class="page" id="pageDeliveries">
-      <h1 class="page-title">Deliveries</h1>
-      <p class="page-subtitle">Log and track water deliveries</p>
+      <div class="page-header-slate">
+        <h1 class="page-title">Deliveries</h1>
+        <p class="page-subtitle">Complete interactive logistics tracker</p>
+      </div>
       <div class="filter-chips" id="deliveryDateChips"></div>
-      <div class="section-header">
-        <span class="section-title">📦 Delivery Log</span>
-        <span class="section-badge" id="deliveryCount">0</span>
+      <div class="section-head-pro">
+        <h3>Delivery Record</h3>
+        <span class="head-badge" id="deliveryCount">0</span>
       </div>
       <div id="deliveryList"><div class="spinner"></div></div>
     </div>
 
     <!-- ===== CUSTOMERS PAGE ===== -->
     <div class="page" id="pageCustomers">
-      <h1 class="page-title">Customers</h1>
-      <p class="page-subtitle">Manage your customer base</p>
-      <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="customerSearch" placeholder="Search customers..." oninput="Customers.search(this.value)">
+      <div class="page-header-slate">
+        <h1 class="page-title">Customers</h1>
+        <p class="page-subtitle">Full clients directory & route maps</p>
+      </div>
+      <div class="search-bar-pro">
+        <i data-lucide="search" class="search-icon-vector"></i>
+        <input type="text" id="customerSearch" placeholder="Find customer name, route or phone..." oninput="Customers.search(this.value)">
       </div>
       <div class="filter-chips" id="routeChips"></div>
       <div id="customerList"><div class="spinner"></div></div>
     </div>
 
-    <!-- ===== BILLS PAGE ===== -->
-    <div class="page" id="pageBills">
-      <h1 class="page-title">Bills</h1>
-      <p class="page-subtitle">Monthly billing overview</p>
-      <div class="flex-between mb-16">
-        <select class="form-select" id="billMonth" style="width:48%" onchange="Bills.load()"></select>
-        <select class="form-select" id="billYear" style="width:48%" onchange="Bills.load()"></select>
+    <!-- ===== VAULT (FINANCE) PAGE ===== -->
+    <div class="page" id="pageVault">
+      <div class="page-header-slate">
+        <h1 class="page-title">Finance Vault</h1>
+        <p class="page-subtitle">Monthly ledger & system grid analysis</p>
       </div>
-      <div class="section-header">
-        <span class="section-title">📋 Bill Register</span>
-        <span class="section-badge" id="billCount">0</span>
+      
+      <!-- Slate Segmented Controller -->
+      <div class="segmented-control">
+        <button class="segment-btn active" id="segBills" onclick="App.switchVaultSubTab('bills')">
+          <i data-lucide="file-text"></i> Invoices
+        </button>
+        <button class="segment-btn" id="segReports" onclick="App.switchVaultSubTab('reports')">
+          <i data-lucide="layout-grid"></i> Report Grid
+        </button>
       </div>
-      <div id="billList"><div class="spinner"></div></div>
+
+      <!-- Sub-Section: Bills -->
+      <div id="vaultBillsSection">
+        <div class="date-filter-strip">
+          <select class="form-select-pro" id="billMonth" onchange="Bills.load()"></select>
+          <select class="form-select-pro" id="billYear" onchange="Bills.load()"></select>
+        </div>
+        <div class="section-head-pro">
+          <h3>Invoices Register</h3>
+          <span class="head-badge" id="billCount">0</span>
+        </div>
+        <div id="billList"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Sub-Section: Reports -->
+      <div id="vaultReportsSection" style="display:none;">
+        <div class="date-filter-strip">
+          <select class="form-select-pro" id="reportMonth" onchange="Reports.load()"></select>
+          <select class="form-select-pro" id="reportYear" onchange="Reports.load()"></select>
+        </div>
+        <div id="reportContent"><div class="spinner"></div></div>
+      </div>
     </div>
 
-    <!-- ===== REPORTS PAGE ===== -->
-    <div class="page" id="pageReports">
-      <h1 class="page-title">Reports</h1>
-      <p class="page-subtitle">Full Delivery Register (Grid)</p>
-      <div class="flex-between mb-16">
-        <select class="form-select" id="reportMonth" style="width:48%" onchange="Reports.load()"></select>
-        <select class="form-select" id="reportYear" style="width:48%" onchange="Reports.load()"></select>
-      </div>
-      <div id="reportContent"><div class="spinner"></div></div>
-    </div>
   </div>
 
-  <!-- Bottom Navigation -->
-  <nav class="bottom-nav">
-    <button class="nav-item active" onclick="App.navigate('Dashboard')">
-      <span class="nav-icon">📊</span><span class="nav-label">Home</span>
+  <!-- 🛸 Premium 4-Dock Bottom Navigation -->
+  <nav class="dock-nav">
+    <button class="dock-item active" onclick="App.navigate('Dashboard')">
+      <i data-lucide="layout-dashboard" class="dock-icon"></i>
+      <span class="dock-lbl">Home</span>
     </button>
-    <button class="nav-item" onclick="App.navigate('Deliveries')">
-      <span class="nav-icon">🚚</span><span class="nav-label">Deliver</span>
+    <button class="dock-item" onclick="App.navigate('Deliveries')">
+      <i data-lucide="truck" class="dock-icon"></i>
+      <span class="dock-lbl">Logs</span>
     </button>
-    <button class="nav-item" onclick="App.navigate('Customers')">
-      <span class="nav-icon">👥</span><span class="nav-label">Clients</span>
+    <button class="dock-item" onclick="App.navigate('Customers')">
+      <i data-lucide="users" class="dock-icon"></i>
+      <span class="dock-lbl">Clients</span>
     </button>
-    <button class="nav-item" onclick="App.navigate('Bills')">
-      <span class="nav-icon">📋</span><span class="nav-label">Bills</span>
-    </button>
-    <button class="nav-item" onclick="App.navigate('Reports')">
-      <span class="nav-icon">📈</span><span class="nav-label">Reports</span>
+    <button class="dock-item" onclick="App.navigate('Vault')">
+      <i data-lucide="lock" class="dock-icon"></i>
+      <span class="dock-lbl">Vault</span>
     </button>
   </nav>
 
-  <!-- FAB for adding -->
-  <button class="fab" id="fabAdd" onclick="App.onFabClick()">+</button>
+  <!-- Compact Rounded Action FAB -->
+  <button class="fab-slate" id="fabAdd" onclick="App.onFabClick()" aria-label="Quick Add">
+    <i data-lucide="plus"></i>
+  </button>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <!-- Premium Feedback Toast -->
+  <div class="toast-pro" id="toast"></div>
 
-  <!-- Modal for Add/Edit -->
+  <!-- Sleek Modal (BottomSheet) -->
   <div class="modal-overlay" id="modal">
-    <div class="modal-content" id="modalContent">
-      <div class="modal-handle"></div>
+    <div class="modal-content-pro" id="modalContent">
+      <div class="modal-drag-handle"></div>
       <div id="modalBody"></div>
     </div>
   </div>
 
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="js/supabase-config.js?v=15"></script>
-  <script src="js/app.js?v=15"></script>
-  <script src="js/dashboard.js?v=15"></script>
-  <script src="js/deliveries.js?v=15"></script>
-  <script src="js/customers.js?v=15"></script>
-  <script src="js/bills.js?v=15"></script>
-  <script src="js/reports.js?v=15"></script>
+  <script src="js/supabase-config.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
+  <script src="js/dashboard.js?v=16"></script>
+  <script src="js/deliveries.js?v=16"></script>
+  <script src="js/customers.js?v=16"></script>
+  <script src="js/bills.js?v=16"></script>
+  <script src="js/reports.js?v=16"></script>
+  
   <script>
+    // Register service worker & fire Lucide initial rendering pass!
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(() => console.log('SW registered')).catch(e => console.log('SW failed:', e));
     }

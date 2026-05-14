@@ -58,7 +58,8 @@ const Bills = {
 
       if (allCustIds.length === 0) {
         document.getElementById('billCount').textContent = '0';
-        div.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No activity recorded for this month</div></div>';
+        div.innerHTML = '<div class="empty-state"><i data-lucide="file-text" class="empty-icon-vector"></i><div class="empty-text">No ledger activity recorded for this billing cycle.</div></div>';
+        App.refreshIcons();
         return;
       }
 
@@ -73,9 +74,19 @@ const Bills = {
       const totalAmount = (bills||[]).reduce((s,b) => s + (b.grand_total||0), 0);
       const paidAmount = (bills||[]).filter(b=>b.status==='PAID').reduce((s,b) => s + (b.grand_total||0), 0);
 
-      let html = `<div class="card" style="border-left:3px solid var(--accent-purple)">
-        <div class="flex-between" style="margin-bottom:8px"><span style="font-weight:600">💰 Finalized Total</span><span style="font-weight:800;font-size:18px">₹${Math.round(totalAmount).toLocaleString('en-IN')}</span></div>
-        <div class="flex-between"><span><span class="badge badge-paid">✅ Paid: ₹${Math.round(paidAmount).toLocaleString('en-IN')}</span></span><span><span class="badge badge-pending">⏳ Pending: ₹${Math.round(totalAmount - paidAmount).toLocaleString('en-IN')}</span></span></div>
+      let html = `<div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-slate);">
+          <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Ledger Total</div>
+          <div style="font-size:20px; font-weight:800; color:var(--text-primary);">₹${Math.round(totalAmount).toLocaleString('en-IN')}</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-emerald);">
+            <i data-lucide="check-circle" style="width:12px; height:12px;"></i> Paid: ₹${Math.round(paidAmount).toLocaleString('en-IN')}
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-amber);">
+            <i data-lucide="clock" style="width:12px; height:12px;"></i> Unpaid: ₹${Math.round(totalAmount - paidAmount).toLocaleString('en-IN')}
+          </div>
+        </div>
       </div>`;
 
       // Combine data points for rendering
@@ -100,26 +111,35 @@ const Bills = {
           const isPaid = row.bill.status === 'PAID';
           html += `<div class="list-item" onclick="Bills.showDetail(${row.bill.id})">
             <div class="list-avatar" style="background:${color}">${row.name.charAt(0).toUpperCase()}</div>
-            <div class="list-content"><div class="list-name">${row.name}</div>
-            <div class="list-detail">🫙 ${row.bill.total_jars} · 🍶 ${row.bill.total_bottles} · <span class="badge ${isPaid?'badge-paid':'badge-pending'}">${row.bill.status}</span></div></div>
-            <div class="list-right"><div class="list-value ${isPaid?'text-green':'text-orange'}">₹${Math.round(row.bill.grand_total)}</div></div>
+            <div class="list-content">
+              <div class="list-name">${row.name}</div>
+              <div class="list-detail">
+                <i data-lucide="droplets" class="icon-xxs"></i> ${row.bill.total_jars} &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${row.bill.total_bottles} &nbsp;·&nbsp; <span class="badge ${isPaid?'badge-paid':'badge-pending'}">${row.bill.status}</span>
+              </div>
+            </div>
+            <div class="list-right"><div class="list-value" style="color:${isPaid?'var(--accent-emerald)':'var(--accent-amber)'}">₹${Math.round(row.bill.grand_total)}</div></div>
           </div>`;
         } else {
-          // Active delivery summary modal trigger
           html += `<div class="list-item" onclick="Bills.showUnbilledDetail('${encodeURIComponent(row.name)}', ${row.d.jars}, ${row.d.bottles}, ${row.cid})">
             <div class="list-avatar" style="background:${color}">${row.name.charAt(0).toUpperCase()}</div>
-            <div class="list-content"><div class="list-name">${row.name}</div>
-            <div class="list-detail">🫙 ${row.d.jars} Jars · 🍶 ${row.d.bottles} Bottles · <span class="badge" style="background:var(--bg-glass);color:var(--accent-cyan)">📊 ACTIVE</span></div></div>
-            <div class="list-right"><div class="list-value" style="color:var(--text-secondary);font-size:12px">Live Summary</div></div>
+            <div class="list-content">
+              <div class="list-name">${row.name}</div>
+              <div class="list-detail">
+                <i data-lucide="droplets" class="icon-xxs"></i> ${row.d.jars} &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${row.d.bottles} &nbsp;·&nbsp; <span class="badge" style="background:rgba(255,255,255,0.04); color:var(--accent-cyan);"><i data-lucide="activity" style="width:8px; height:8px;"></i> OPEN</span>
+              </div>
+            </div>
+            <div class="list-right"><div class="list-value" style="color:var(--text-muted); font-size:11px; font-weight:700;">Draft</div></div>
           </div>`;
         }
       });
       
       div.innerHTML = html;
+      App.refreshIcons();
 
     } catch (e) {
       console.error(e);
-      div.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">' + e.message + '</div></div>';
+      div.innerHTML = '<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Ledger load failure: ' + e.message + '</div></div>';
+      App.refreshIcons();
     }
   },
 
@@ -346,33 +366,39 @@ const Bills = {
     };
 
     App.showModal(`
-      <div class="modal-title">💰 Mobile Billing Terminal</div>
-      <div class="card" style="border-left: 3px solid var(--accent-cyan)">
-        <h3 style="margin:0">${decodedName}</h3>
-        <p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">Current Period: ${months[curMonth]} ${curYear}</p>
+      <div class="modal-title"><i data-lucide="file-plus"></i> Billing Portal</div>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
+        <h3 style="margin:0 0 4px 0; font-size:15px; font-weight:800; color:var(--text-primary);">${decodedName}</h3>
+        <p style="margin-bottom:18px; font-size:12px; font-weight:600; color:var(--text-secondary);">Billing Cycle: ${months[curMonth]} ${curYear}</p>
         
-        <div class="flex-between" style="margin-bottom:10px; background:var(--bg-glass); padding:8px; border-radius:6px;">
-           <span>🫙 Jars: <strong>${jars}</strong></span>
-           <input type="number" id="tempJarRate" placeholder="Rate" oninput="calcTempBill()" style="width:80px; background:transparent; border:1px solid var(--border-glass); color:white; border-radius:4px; padding:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-slate); border-radius:var(--radius-sm);">
+           <span style="font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="droplets" style="width:14px; height:14px; color:var(--accent-cyan);"></i> Jars: <strong>${jars}</strong></span>
+           <input type="number" id="tempJarRate" placeholder="Rate" oninput="calcTempBill()" style="width:80px; background:transparent; border:1px solid var(--border-slate-bright); color:white; border-radius:8px; padding:6px 10px; text-align:right; font-family:inherit; font-weight:700;">
         </div>
-        <div class="flex-between" style="margin-bottom:16px; background:var(--bg-glass); padding:8px; border-radius:6px;">
-           <span>🍶 Bottles: <strong>${bottles}</strong></span>
-           <input type="number" id="tempBotRate" placeholder="Rate" oninput="calcTempBill()" style="width:80px; background:transparent; border:1px solid var(--border-glass); color:white; border-radius:4px; padding:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-slate); border-radius:var(--radius-sm);">
+           <span style="font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="glass-water" style="width:14px; height:14px; color:var(--accent-violet);"></i> Bottles: <strong>${bottles}</strong></span>
+           <input type="number" id="tempBotRate" placeholder="Rate" oninput="calcTempBill()" style="width:80px; background:transparent; border:1px solid var(--border-slate-bright); color:white; border-radius:8px; padding:6px 10px; text-align:right; font-family:inherit; font-weight:700;">
         </div>
 
-        <div style="border-top:1px solid var(--border-glass);padding-top:12px;" class="flex-between">
-          <span style="font-weight:600">Instant Total</span>
-          <span id="tempTotalDisplay" style="font-size:20px;font-weight:800;color:var(--accent-cyan)">₹0</span>
+        <div style="border-top:1px solid var(--border-slate); padding-top:14px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Projected Total</span>
+          <span id="tempTotalDisplay" style="font-size:22px; font-weight:800; color:var(--accent-cyan); letter-spacing:-0.02em;">₹0</span>
         </div>
       </div>
       
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
-         <button class="btn btn-success" onclick="saveOfficialBill()" style="background:linear-gradient(135deg, #27ae60, #2ecc71)">💾 Finalize Bill</button>
-         <button class="btn btn-outline" onclick="shareWhatsApp()" style="border-color:#25D366; color:#25D366; background: rgba(37,211,102,0.1)">💬 WhatsApp</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px;">
+         <button class="btn btn-primary" onclick="saveOfficialBill()">
+           <i data-lucide="check-circle"></i> Finalize
+         </button>
+         <button class="btn btn-outline" onclick="shareWhatsApp()" style="border-color:#25D366; color:#25D366;">
+           <i data-lucide="message-square"></i> WhatsApp
+         </button>
       </div>
 
-      <button class="btn btn-outline mt-8" onclick="printTempBill()">🖨️ Print Slip</button>
-      <button class="btn btn-outline mt-8" onclick="App.closeModal()" style="opacity:0.6; font-size:12px">Cancel</button>
+      <button class="btn btn-outline mt-8" onclick="printTempBill()">
+        <i data-lucide="printer"></i> Generate & Print Slip
+      </button>
+      <button class="btn btn-outline mt-8" onclick="App.closeModal()" style="opacity:0.6;">Cancel</button>
     `);
   },
 
@@ -386,7 +412,6 @@ const Bills = {
     const fullMonths = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
     const isPaid = b.status === 'PAID';
 
-    // Reconstruct printers and sharers using stored DB variables
     window.printFinalized = function() {
       const jR = b.jar_rate, bR = b.bottle_rate, jars = b.total_jars, bottles = b.total_bottles;
       const jA = b.jar_amount, bA = b.bottle_amount, t = b.grand_total;
@@ -475,18 +500,18 @@ const Bills = {
       const rawMob = c?.mobile ? c.mobile.replace(/[^0-9]/g, "") : "";
       let mob = rawMob;
       if (mob.length === 10) mob = "91" + mob;
-      const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour invoice for *${fullMonths[b.bill_month]} ${b.bill_year}* is generated.\n\n🫙 Jars: ${b.total_jars} x ₹${b.jar_rate}\n🍶 Bottles: ${b.total_bottles} x ₹${b.bottle_rate}\n--------------------\n*Total Payable: ₹${Math.round(b.grand_total)}*\n\nPay instantly via UPI:\nupi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${b.grand_total}&cu=INR\n\nThank you! 🙏`;
+      const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour invoice for *${fullMonths[b.bill_month]} ${b.bill_year}* is generated.\n\nJars: ${b.total_jars} x ₹${b.jar_rate}\nBottles: ${b.total_bottles} x ₹${b.bottle_rate}\n--------------------\n*Total Payable: ₹${Math.round(b.grand_total)}*\n\nPay instantly via UPI:\nupi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${b.grand_total}&cu=INR\n\nThank you!`;
       window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
     };
 
     window.sendEmailFinal = function() {
       const email = c?.email ? c.email.trim() : "";
       if (!email) {
-        alert("This customer does not have an email address saved.\nPlease edit the customer and add an email first!");
+        App.toast("No saved customer email.", "warning");
         return;
       }
       const subject = `Water Delivery Invoice - ${fullMonths[b.bill_month]} ${b.bill_year}`;
-      const body = `Dear ${name},\n\nPlease find your monthly bill details for Bhairavnath Cool Aqua:\n\nMonth: ${fullMonths[b.bill_month]} ${b.bill_year}\nJars (20L): ${b.total_jars}\nBottles (20L): ${b.total_bottles}\nTotal Amount Payable: ₹${Math.round(b.grand_total)}\n\nKindly clear the dues via the attached UPI link if possible.\n\nThank you for your business,\nBhairavnath Cool Aqua Team`;
+      const body = `Dear ${name},\n\nPlease find your monthly bill details:\n\nMonth: ${fullMonths[b.bill_month]} ${b.bill_year}\nJars: ${b.total_jars}\nBottles: ${b.total_bottles}\nTotal Payable: ₹${Math.round(b.grand_total)}\n\nKindly clear the dues. Thank you!`;
       
       const link = document.createElement('a');
       link.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -494,63 +519,81 @@ const Bills = {
     };
 
     App.showModal(`
-      <div class="modal-title">📋 Finalized Bill</div>
-      <div class="card">
-        <h3 style="margin:0">${name}</h3>
-        <p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">📅 ${months[b.bill_month]} ${b.bill_year}</p>
+      <div class="modal-title"><i data-lucide="file-check"></i> Finalized Invoice</div>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
+        <h3 style="margin:0 0 4px 0; font-size:15px; font-weight:800; color:var(--text-primary);">${name}</h3>
+        <p style="margin-bottom:18px; font-size:12px; font-weight:600; color:var(--text-secondary); display:flex; align-items:center; gap:4px;"><i data-lucide="calendar" style="width:12px; height:12px;"></i> Period: ${months[b.bill_month]} ${b.bill_year}</p>
         
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0">
-          <div><span style="color:var(--text-secondary);font-size:12px">🫙 Jars</span><br><strong>${b.total_jars} × ₹${b.jar_rate}</strong><br><span class="text-cyan">₹${Math.round(b.jar_amount)}</span></div>
-          <div><span style="color:var(--text-secondary);font-size:12px">🍶 Bottles</span><br><strong>${b.total_bottles} × ₹${b.bottle_rate}</strong><br><span class="text-cyan">₹${Math.round(b.bottle_amount)}</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border-slate);">
+          <div>
+            <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; display:flex; align-items:center; gap:4px;"><i data-lucide="droplets" style="width:12px; height:12px; color:var(--accent-cyan);"></i> Jars</div>
+            <div style="font-size:13px; font-weight:700;">${b.total_jars} × ₹${b.jar_rate}</div>
+            <div style="font-size:11px; font-weight:800; color:var(--accent-cyan); margin-top:2px;">₹${Math.round(b.jar_amount)}</div>
+          </div>
+          <div>
+            <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; display:flex; align-items:center; gap:4px;"><i data-lucide="glass-water" style="width:12px; height:12px; color:var(--accent-violet);"></i> Bottles</div>
+            <div style="font-size:13px; font-weight:700;">${b.total_bottles} × ₹${b.bottle_rate}</div>
+            <div style="font-size:11px; font-weight:800; color:var(--accent-violet); margin-top:2px;">₹${Math.round(b.bottle_amount)}</div>
+          </div>
         </div>
         
-        <div style="border-top:1px solid var(--border-glass);padding-top:12px;margin-top:8px" class="flex-between">
-          <span style="font-size:16px;font-weight:800">Grand Total</span>
-          <span style="font-size:20px;font-weight:800;color:var(--accent-cyan)">₹${Math.round(b.grand_total).toLocaleString('en-IN')}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Grand Total</span>
+          <span style="font-size:22px; font-weight:800; color:var(--accent-cyan); letter-spacing:-0.02em;">₹${Math.round(b.grand_total).toLocaleString('en-IN')}</span>
         </div>
       </div>
 
-      <div style="margin:12px 0;text-align:center;"><span class="badge ${isPaid?'badge-paid':'badge-pending'}" style="font-size:14px;padding:8px 20px">${isPaid?'✅ PAID':'⏳ PENDING'}</span></div>
+      <div style="margin:16px 0; text-align:center;">
+        <span class="badge ${isPaid?'badge-paid':'badge-pending'}" style="padding:6px 16px; font-size:11px; font-weight:800;">
+          <i data-lucide="${isPaid?'check-circle':'clock'}"></i> ${isPaid?'SETTLED / PAID':'OUTSTANDING'}
+        </span>
+      </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-         <button class="btn btn-outline" onclick="shareWhatsAppFinal()" style="border-color:#25D366; color:#25D366; background: rgba(37,211,102,0.1);"><i class="icon">💬</i> WhatsApp</button>
-         <button class="btn btn-outline" onclick="sendEmailFinal()" style="border-color:#0069b4; color:#0069b4; background: rgba(0,105,180,0.1);"><i class="icon">📧</i> Email</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+         <button class="btn btn-outline" onclick="shareWhatsAppFinal()" style="border-color:#25D366; color:#25D366;">
+           <i data-lucide="message-square"></i> WhatsApp
+         </button>
+         <button class="btn btn-outline" onclick="sendEmailFinal()" style="border-color:var(--accent-cyan); color:var(--accent-cyan);">
+           <i data-lucide="mail"></i> Email Client
+         </button>
       </div>
       
-      <button class="btn btn-success mt-8" onclick="printFinalized()">🖨️ Print / Save PDF</button>
+      <button class="btn btn-outline" onclick="printFinalized()" style="width:100%;">
+        <i data-lucide="printer"></i> Print Invoice PDF
+      </button>
 
-      <hr style="margin:16px 0; border:none; border-top:1px dashed var(--border-glass);">
+      <hr style="margin:20px 0; border:none; border-top:1px dashed var(--border-slate-bright);">
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-         ${!isPaid ? `<button class="btn btn-warning" onclick="Bills.markPaid(${b.id})">✅ Mark as PAID</button>` : `<button class="btn btn-outline" onclick="Bills.markPending(${b.id})">⏳ Mark as UNPAID</button>`}
-         <button class="btn btn-danger" onclick="Bills.deleteBill(${b.id})">🗑️ Delete Bill</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+         ${!isPaid ? `<button class="btn btn-success" onclick="Bills.markPaid(${b.id})"><i data-lucide="check"></i> Set Paid</button>` : `<button class="btn btn-outline" onclick="Bills.markPending(${b.id})"><i data-lucide="x"></i> Unsettle</button>`}
+         <button class="btn btn-danger" onclick="Bills.deleteBill(${b.id})"><i data-lucide="trash-2"></i> Delete</button>
       </div>
-      <button class="btn btn-outline mt-8" onclick="App.closeModal()" style="opacity:0.6">Close</button>
+      <button class="btn btn-outline mt-8" onclick="App.closeModal()" style="opacity:0.6;">Close</button>
     `);
   },
 
   async deleteBill(id) {
-    if (!confirm('Are you absolutely sure you want to delete this finalized bill?')) return;
+    if (!confirm('Permenantly erase this invoice from the ledger?')) return;
     const { error } = await supabase.from('bills').delete().eq('id', id);
-    if (error) { App.toast('Error: ' + error.message, 'error'); return; }
+    if (error) { App.toast('Operation failed.', 'warning'); return; }
     App.closeModal();
-    App.toast('Bill Deleted! 🗑️');
+    App.toast('Ledger entry removed.');
     this.load();
   },
 
   async markPaid(id) {
     const { error } = await supabase.from('bills').update({ status: 'PAID', updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { App.toast('Error: ' + error.message, 'error'); return; }
+    if (error) { App.toast('Operation failed.', 'warning'); return; }
     App.closeModal();
-    App.toast('Bill marked as PAID! ✅');
+    App.toast('Invoice status set to PAID.');
     this.load();
   },
 
   async markPending(id) {
     const { error } = await supabase.from('bills').update({ status: 'PENDING', updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { App.toast('Error: ' + error.message, 'error'); return; }
+    if (error) { App.toast('Operation failed.', 'warning'); return; }
     App.closeModal();
-    App.toast('Bill marked as PENDING');
+    App.toast('Invoice set to outstanding.');
     this.load();
   }
 };

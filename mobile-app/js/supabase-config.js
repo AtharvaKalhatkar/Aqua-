@@ -62,7 +62,7 @@ const OfflineVault = {
     this.saveQueue(queue);
 
     if (typeof App !== 'undefined' && App.toast) {
-      App.toast('📶 Saved Offline in Phone Vault! Will sync automatically.', 'warning');
+      App.toast('Saved to local vault. Auto-sync pending.', 'warning');
     }
     return { success: true, error: null, offline: true };
   },
@@ -74,7 +74,7 @@ const OfflineVault = {
     if (queue.length === 0) return;
 
     this.isSyncing = true;
-    console.log(`🚀 [Vault] Processing ${queue.length} stored entries...`);
+    console.log(`[Vault] Processing ${queue.length} stored entries...`);
 
     const failed = [];
     let syncedCount = 0;
@@ -83,17 +83,16 @@ const OfflineVault = {
       try {
         const { error } = await supabase.from(item.table).insert(item.record);
         if (error) {
-          // Code 23505 = Primary Key Duplicate (It already made it up somehow!)
           if (error.code === '23505') {
             syncedCount++;
           } else {
-            failed.push(item); // Actual insert logic error, keep for review
+            failed.push(item);
           }
         } else {
           syncedCount++;
         }
       } catch (e) {
-        failed.push(item); // Still offline, hold in vault
+        failed.push(item);
       }
     }
 
@@ -101,7 +100,7 @@ const OfflineVault = {
     this.isSyncing = false;
 
     if (syncedCount > 0 && typeof App !== 'undefined') {
-      App.toast(`🚀 Back Online! Synced ${syncedCount} offline entries to Cloud! ✅`, 'success');
+      App.toast(`Online. Synced ${syncedCount} records to the cloud.`, 'success');
       if (App.currentPage === 'Dashboard' && typeof Dashboard !== 'undefined') Dashboard.load();
       else if (App.currentPage === 'Deliveries' && typeof Deliveries !== 'undefined') Deliveries.load();
     }

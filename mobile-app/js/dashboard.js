@@ -93,13 +93,13 @@ const Dashboard = {
 
     let topHtml = '';
     if (isOffline) {
-      topHtml = `<div style="background:#f59e0b1c; color:#d97706; border:1px solid #f59e0b50; border-radius:8px; padding:8px; margin-bottom:12px; font-size:11px; text-align:center; font-weight:600;">
-        📴 Showing Stored Offline Copy
+      topHtml = `<div style="background:rgba(245,158,11,0.08); color:var(--accent-amber); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:10px; margin-bottom:16px; font-size:10px; text-align:center; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <i data-lucide="cloud-off" style="width:12px; height:12px;"></i> LOADED FROM LOCAL VAULT
       </div>`;
     }
 
     if (!data.todayDels || data.todayDels.length === 0) {
-      todayDiv.innerHTML = topHtml + '<div class="empty-state"><div class="empty-icon">🚚</div><div class="empty-text">No deliveries today yet</div></div>';
+      todayDiv.innerHTML = topHtml + '<div class="empty-state"><i data-lucide="truck" class="empty-icon-vector"></i><div class="empty-text">No deliveries registered yet today.</div></div>';
     } else {
       let html = topHtml;
       data.todayDels.forEach(d => {
@@ -109,7 +109,9 @@ const Dashboard = {
           <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
           <div class="list-content">
             <div class="list-name">${name}</div>
-            <div class="list-detail">🫙 ${d.jar_qty} Jars · 🍶 ${d.bottle_qty} Bottles</div>
+            <div class="list-detail">
+              <i data-lucide="droplets" class="icon-xxs"></i> ${d.jar_qty} Jars &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${d.bottle_qty} Bottles
+            </div>
           </div>
           <div class="list-right"><div class="list-value">${d.jar_qty + d.bottle_qty}</div><div class="list-sub">items</div></div>
         </div>`;
@@ -120,7 +122,7 @@ const Dashboard = {
     // Render Pending Bills
     const pendDiv = document.getElementById('pendingBillsList');
     if (pending.length === 0) {
-      pendDiv.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">All bills paid this month!</div></div>';
+      pendDiv.innerHTML = '<div class="empty-state"><i data-lucide="check-circle-2" class="empty-icon-vector" style="color:var(--accent-emerald)"></i><div class="empty-text">All collections completed!</div></div>';
     } else {
       const custMap = {};
       (data.pendingCusts||[]).forEach(c => custMap[c.id] = c.name);
@@ -129,16 +131,19 @@ const Dashboard = {
       pending.forEach(b => {
         const name = custMap[b.customer_id] || 'Customer #' + b.customer_id;
         const color = App.getAvatarColor(name);
-        html += `<div class="list-item" onclick="App.navigate('Bills')">
+        html += `<div class="list-item" onclick="App.navigate('Vault')">
           <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
           <div class="list-content">
             <div class="list-name">${name}</div>
-            <div class="list-detail"><span class="badge badge-pending">⏳ Pending</span></div>
+            <div class="list-detail"><span class="badge badge-pending"><i data-lucide="clock"></i> PENDING</span></div>
           </div>
-          <div class="list-right"><div class="list-value text-orange">₹${Math.round(b.grand_total).toLocaleString('en-IN')}</div></div>
+          <div class="list-right"><div class="list-value" style="color:var(--accent-amber)">₹${Math.round(b.grand_total).toLocaleString('en-IN')}</div></div>
         </div>`;
       });
       pendDiv.innerHTML = html;
     }
+
+    // Hydrate the freshly painted vectors!
+    App.refreshIcons();
   }
 };
