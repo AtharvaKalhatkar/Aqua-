@@ -74,6 +74,11 @@ const Bills = {
       const totalAmount = (bills||[]).reduce((s,b) => s + (b.grand_total||0), 0);
       const paidAmount = (bills||[]).filter(b=>b.status==='PAID').reduce((s,b) => s + (b.grand_total||0), 0);
 
+      const statEl = document.getElementById('statIncome');
+      if (statEl) {
+        statEl.textContent = '₹' + Math.round(totalAmount).toLocaleString('en-IN');
+      }
+
       let html = `<div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-slate);">
           <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Ledger Total</div>

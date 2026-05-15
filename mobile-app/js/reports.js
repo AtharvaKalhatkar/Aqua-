@@ -72,6 +72,11 @@ const Reports = {
         totalMoney += (b.grand_total || 0);
       });
 
+      const statEl = document.getElementById('statIncome');
+      if (statEl) {
+        statEl.textContent = '₹' + Math.round(totalMoney).toLocaleString('en-IN');
+      }
+
       if (dels.length === 0) {
         content.innerHTML = '<div class="empty-state"><i data-lucide="line-chart" class="empty-icon-vector"></i><div class="empty-text">No ledger logs recorded for this period.</div></div>';
         App.refreshIcons();
