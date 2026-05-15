@@ -117,7 +117,9 @@ const Deliveries = {
   async showAddForm() {
     let custs = [];
     try {
-      const { data } = await supabase.from('customers').select('id,name,route').order('name');
+      const { data, error } = await supabase.from('customers').select('id,name,route').order('name');
+      if (error) throw error;
+      
       custs = data || [];
       if (custs.length > 0) {
         localStorage.setItem('cache_cust_dropdown', JSON.stringify(custs));
@@ -125,7 +127,7 @@ const Deliveries = {
     } catch (e) {
       const offlineCusts = localStorage.getItem('cache_cust_dropdown');
       if (offlineCusts) {
-        custs = JSON.parse(offlineCusts);
+        try { custs = JSON.parse(offlineCusts); } catch (ex) {}
       }
     }
 
@@ -260,11 +262,15 @@ const Deliveries = {
   },
 
   async delete(id) {
-    if (!confirm('Permenantly delete this delivery entry?')) return;
-    const { error } = await supabase.from('deliveries').delete().eq('id', id);
-    if (error) { App.toast('Failed to delete.', 'warning'); return; }
-    App.closeModal();
-    App.toast('Log entry removed.');
-    this.fetchDeliveries();
+    if (!confirm('Permanently delete this delivery entry?')) return;
+    try {
+      const res = await OfflineVault.safeWrite('DELETE', 'deliveries', null, { id });
+      if (res.error) throw res.error;
+      App.closeModal();
+      App.toast('Log entry removed.');
+      this.fetchDeliveries();
+    } catch (e) {
+      App.toast('Failed to delete: ' + e.message, 'warning');
+    }
   }
 };

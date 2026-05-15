@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqua-v20';
+const CACHE_NAME = 'aqua-v21';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,11 @@ const ASSETS = [
   './js/customers.js',
   './js/bills.js',
   './js/reports.js',
+  './js/vendor/lucide.min.js',
+  './js/vendor/supabase.min.js',
+  './icons/logo.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './manifest.json'
 ];
 
@@ -25,8 +30,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.url.includes('supabase.co') || e.request.url.includes('googleapis.com')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request, { ignoreSearch: true })));
     return;
   }
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request)));
 });

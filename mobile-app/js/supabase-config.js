@@ -41,30 +41,44 @@ const OfflineVault = {
     localStorage.setItem('aqua_vault', JSON.stringify(queue));
   },
   
-  async safeInsert(table, record) {
-    // Attempt absolute realtime push first
+  async safeWrite(action, table, record, condition = null) {
+    // Attempt direct push first
     try {
-      const { error } = await supabase.from(table).insert(record);
+      let res;
+      if (action === 'INSERT') {
+        res = await supabase.from(table).insert(record);
+      } else if (action === 'UPDATE') {
+        res = await supabase.from(table).update(record).match(condition);
+      } else if (action === 'DELETE') {
+        res = await supabase.from(table).delete().match(condition);
+      }
+      
+      const { error } = res || {};
       if (!error) return { success: true, error: null };
       
-      // Check if network issue
-      if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+      // Check if connection issue
+      if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.code === 'PGRST116')) {
         throw new Error("Network Fail");
       }
-      return { success: false, error }; // Standard db validation error
+      return { success: false, error };
     } catch (e) {
-      console.warn(`[📶 Offline Mode] Securing ${table} insert in phone storage...`);
+      console.warn(`[📶 Offline Mode] Securing ${action} on ${table} in storage...`);
     }
 
     // Lock data into the Vault securely
     const queue = this.getQueue();
-    queue.push({ table, record, stamp: new Date().toISOString() });
+    queue.push({ action, table, record, condition, stamp: new Date().toISOString() });
     this.saveQueue(queue);
 
     if (typeof App !== 'undefined' && App.toast) {
-      App.toast('Saved to local vault. Auto-sync pending.', 'warning');
+      App.toast(`Offline: Saved ${action.toLowerCase()} to phone storage.`, 'warning');
     }
+    
     return { success: true, error: null, offline: true };
+  },
+  
+  async safeInsert(table, record) {
+    return this.safeWrite('INSERT', table, record);
   },
 
   isSyncing: false,
@@ -74,16 +88,27 @@ const OfflineVault = {
     if (queue.length === 0) return;
 
     this.isSyncing = true;
-    console.log(`[Vault] Processing ${queue.length} stored entries...`);
+    console.log(`[Vault] Processing ${queue.length} stored offline actions...`);
 
     const failed = [];
     let syncedCount = 0;
 
     for (const item of queue) {
       try {
-        const { error } = await supabase.from(item.table).insert(item.record);
+        const action = item.action || 'INSERT'; // Backwards compatibility
+        let res;
+        
+        if (action === 'INSERT') {
+          res = await supabase.from(item.table).insert(item.record);
+        } else if (action === 'UPDATE') {
+          res = await supabase.from(item.table).update(item.record).match(item.condition);
+        } else if (action === 'DELETE') {
+          res = await supabase.from(item.table).delete().match(item.condition);
+        }
+
+        const { error } = res || {};
         if (error) {
-          if (error.code === '23505') {
+          if (error.code === '23505') { // Already exists
             syncedCount++;
           } else {
             failed.push(item);
@@ -100,9 +125,12 @@ const OfflineVault = {
     this.isSyncing = false;
 
     if (syncedCount > 0 && typeof App !== 'undefined') {
-      App.toast(`Online. Synced ${syncedCount} records to the cloud.`, 'success');
+      App.toast(`Online. Synced ${syncedCount} records to cloud!`, 'success');
+      // Reload the current active screen
       if (App.currentPage === 'Dashboard' && typeof Dashboard !== 'undefined') Dashboard.load();
       else if (App.currentPage === 'Deliveries' && typeof Deliveries !== 'undefined') Deliveries.load();
+      else if (App.currentPage === 'Customers' && typeof Customers !== 'undefined') Customers.load();
+      else if (App.currentPage === 'Vault' && typeof Bills !== 'undefined') Bills.load();
     }
   }
 };

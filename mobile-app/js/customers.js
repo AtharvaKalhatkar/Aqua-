@@ -243,15 +243,16 @@ const Customers = {
     const name = document.getElementById('custName').value.trim();
     if (!name) { App.toast('Name is required', 'warning'); return; }
     try {
-      const { error } = await supabase.from('customers').update({
+      const res = await OfflineVault.safeWrite('UPDATE', 'customers', {
         name,
         address: document.getElementById('custAddress').value.trim(),
         mobile: document.getElementById('custMobile').value.trim(),
         route: document.getElementById('custRoute').value.trim(),
         email: document.getElementById('custEmail').value.trim(),
         updated_at: new Date().toISOString()
-      }).eq('id', id);
-      if (error) throw error;
+      }, { id });
+
+      if (res.error) throw res.error;
       App.closeModal();
       App.toast('Client changes saved.');
       this.load();
@@ -261,8 +262,8 @@ const Customers = {
   async delete(id) {
     if (!confirm('Are you sure you want to delete this client profile?')) return;
     try {
-      const { error } = await supabase.from('customers').delete().eq('id', id);
-      if (error) throw error;
+      const res = await OfflineVault.safeWrite('DELETE', 'customers', null, { id });
+      if (res.error) throw res.error;
       App.closeModal();
       App.toast('Customer profile archived.');
       this.load();

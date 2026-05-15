@@ -23,7 +23,25 @@ const Bills = {
     const month = parseInt(document.getElementById('billMonth').value);
     const year = parseInt(document.getElementById('billYear').value);
     const div = document.getElementById('billList');
-    div.innerHTML = '<div class="spinner"></div>';
+    
+    const cacheKey = 'cache_bills_' + month + '_' + year;
+    let hydrated = false;
+
+    // ⚡ Stale-While-Revalidate: Check Offline Storage first
+    const offline = localStorage.getItem(cacheKey);
+    if (offline) {
+      try {
+        const cached = JSON.parse(offline);
+        this.renderBills(cached.dels, cached.bills, cached.custs, true);
+        hydrated = true;
+      } catch (e) {
+        console.warn("Bills cache corrupt.");
+      }
+    }
+
+    if (!hydrated) {
+      div.innerHTML = '<div class="spinner"></div>';
+    }
 
     try {
       // 1. Get all recorded deliveries for this month
@@ -43,111 +61,145 @@ const Bills = {
 
       if (delErr || billErr) throw (delErr || billErr);
 
-      // Aggregate delivery counts by customer
-      const delMap = {};
+      // Pre-aggregate for customer search
+      const delMapTemp = {};
       (dels || []).forEach(d => {
-        if (!delMap[d.customer_id]) delMap[d.customer_id] = { jars: 0, bottles: 0 };
-        delMap[d.customer_id].jars += (d.jar_qty || 0);
-        delMap[d.customer_id].bottles += (d.bottle_qty || 0);
+        if (!delMapTemp[d.customer_id]) delMapTemp[d.customer_id] = true;
       });
+      const billedCustIdsTemp = new Set((bills || []).map(b => b.customer_id));
+      const activeCustIdsTemp = new Set(Object.keys(delMapTemp).map(Number));
+      const allCustIdsTemp = [...new Set([...billedCustIdsTemp, ...activeCustIdsTemp])];
 
-      // Build a master list of customer IDs involved in this month
-      const billedCustIds = new Set((bills || []).map(b => b.customer_id));
-      const activeCustIds = new Set(Object.keys(delMap).map(Number));
-      const allCustIds = [...new Set([...billedCustIds, ...activeCustIds])];
-
-      if (allCustIds.length === 0) {
-        document.getElementById('billCount').textContent = '0';
-        const statEl = document.getElementById('statIncome');
-        if (statEl) statEl.textContent = '₹0';
-        div.innerHTML = '<div class="empty-state"><i data-lucide="file-text" class="empty-icon-vector"></i><div class="empty-text">No ledger activity recorded for this billing cycle.</div></div>';
-        App.refreshIcons();
-        return;
+      // 3. Fetch associated customer names
+      let custs = [];
+      if (allCustIdsTemp.length > 0) {
+        const { data } = await supabase.from('customers').select('id,name').in('id', allCustIdsTemp);
+        custs = data || [];
       }
 
-      // Fetch names
-      const { data: custs } = await supabase.from('customers').select('id,name').in('id', allCustIds);
-      const nameMap = {};
-      (custs || []).forEach(c => nameMap[c.id] = c.name);
+      // Persist in storage for future offline startups
+      localStorage.setItem(cacheKey, JSON.stringify({ dels: dels||[], bills: bills||[], custs }));
 
-      document.getElementById('billCount').textContent = allCustIds.length;
-
-      // Total stats
-      const totalAmount = (bills||[]).reduce((s,b) => s + (b.grand_total||0), 0);
-      const paidAmount = (bills||[]).filter(b=>b.status==='PAID').reduce((s,b) => s + (b.grand_total||0), 0);
-
-      const statEl = document.getElementById('statIncome');
-      if (statEl) {
-        statEl.textContent = '₹' + Math.round(totalAmount).toLocaleString('en-IN');
-      }
-
-      let html = `<div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-slate);">
-          <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Ledger Total</div>
-          <div style="font-size:20px; font-weight:800; color:var(--text-primary);">₹${Math.round(totalAmount).toLocaleString('en-IN')}</div>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-emerald);">
-            <i data-lucide="check-circle" style="width:12px; height:12px;"></i> Paid: ₹${Math.round(paidAmount).toLocaleString('en-IN')}
-          </div>
-          <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-amber);">
-            <i data-lucide="clock" style="width:12px; height:12px;"></i> Unpaid: ₹${Math.round(totalAmount - paidAmount).toLocaleString('en-IN')}
-          </div>
-        </div>
-      </div>`;
-
-      // Combine data points for rendering
-      const displayRows = allCustIds.map(cid => {
-        const bill = (bills || []).find(b => b.customer_id === cid);
-        const d = delMap[cid] || { jars: 0, bottles: 0 };
-        return {
-          cid,
-          name: nameMap[cid] || 'Customer #' + cid,
-          bill,
-          d,
-          isGenerated: !!bill
-        };
-      });
-
-      // Sort alphabetically
-      displayRows.sort((a,b) => a.name.localeCompare(b.name));
-
-      displayRows.forEach(row => {
-        const color = App.getAvatarColor(row.name);
-        if (row.isGenerated) {
-          const isPaid = row.bill.status === 'PAID';
-          html += `<div class="list-item" onclick="Bills.showDetail(${row.bill.id})">
-            <div class="list-avatar" style="background:${color}">${row.name.charAt(0).toUpperCase()}</div>
-            <div class="list-content">
-              <div class="list-name">${row.name}</div>
-              <div class="list-detail">
-                <i data-lucide="droplets" class="icon-xxs"></i> ${row.bill.total_jars} &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${row.bill.total_bottles} &nbsp;·&nbsp; <span class="badge ${isPaid?'badge-paid':'badge-pending'}">${row.bill.status}</span>
-              </div>
-            </div>
-            <div class="list-right"><div class="list-value" style="color:${isPaid?'var(--accent-emerald)':'var(--accent-amber)'}">₹${Math.round(row.bill.grand_total)}</div></div>
-          </div>`;
-        } else {
-          html += `<div class="list-item" onclick="Bills.showUnbilledDetail('${encodeURIComponent(row.name)}', ${row.d.jars}, ${row.d.bottles}, ${row.cid})">
-            <div class="list-avatar" style="background:${color}">${row.name.charAt(0).toUpperCase()}</div>
-            <div class="list-content">
-              <div class="list-name">${row.name}</div>
-              <div class="list-detail">
-                <i data-lucide="droplets" class="icon-xxs"></i> ${row.d.jars} &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${row.d.bottles} &nbsp;·&nbsp; <span class="badge" style="background:rgba(255,255,255,0.04); color:var(--accent-cyan);"><i data-lucide="activity" style="width:8px; height:8px;"></i> OPEN</span>
-              </div>
-            </div>
-            <div class="list-right"><div class="list-value" style="color:var(--text-muted); font-size:11px; font-weight:700;">Draft</div></div>
-          </div>`;
-        }
-      });
-      
-      div.innerHTML = html;
-      App.refreshIcons();
+      this.renderBills(dels, bills, custs, false);
 
     } catch (e) {
       console.error(e);
-      div.innerHTML = '<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Ledger load failure: ' + e.message + '</div></div>';
-      App.refreshIcons();
+      if (!hydrated) {
+        div.innerHTML = '<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Ledger load failure: ' + e.message + '</div></div>';
+        App.refreshIcons();
+      } else {
+        App.toast('📶 Offline Ledger copy maintained.', 'warning');
+      }
     }
+  },
+
+  renderBills(dels, bills, custs, isOffline) {
+    const div = document.getElementById('billList');
+
+    // Aggregate delivery counts by customer
+    const delMap = {};
+    (dels || []).forEach(d => {
+      if (!delMap[d.customer_id]) delMap[d.customer_id] = { jars: 0, bottles: 0 };
+      delMap[d.customer_id].jars += (d.jar_qty || 0);
+      delMap[d.customer_id].bottles += (d.bottle_qty || 0);
+    });
+
+    // Build a master list of customer IDs involved in this month
+    const billedCustIds = new Set((bills || []).map(b => b.customer_id));
+    const activeCustIds = new Set(Object.keys(delMap).map(Number));
+    const allCustIds = [...new Set([...billedCustIds, ...activeCustIds])];
+
+    if (allCustIds.length === 0) {
+      document.getElementById('billCount').textContent = '0';
+      const statEl = document.getElementById('statIncome');
+      if (statEl) statEl.textContent = '₹0';
+      div.innerHTML = '<div class="empty-state"><i data-lucide="file-text" class="empty-icon-vector"></i><div class="empty-text">No ledger activity recorded for this billing cycle.</div></div>';
+      App.refreshIcons();
+      return;
+    }
+
+    const nameMap = {};
+    (custs || []).forEach(c => nameMap[c.id] = c.name);
+
+    document.getElementById('billCount').textContent = allCustIds.length;
+
+    // Total stats
+    const totalAmount = (bills||[]).reduce((s,b) => s + (b.grand_total||0), 0);
+    const paidAmount = (bills||[]).filter(b=>b.status==='PAID').reduce((s,b) => s + (b.grand_total||0), 0);
+
+    const statEl = document.getElementById('statIncome');
+    if (statEl) {
+      statEl.textContent = '₹' + Math.round(totalAmount).toLocaleString('en-IN');
+    }
+
+    let html = '';
+    if (isOffline) {
+      html += `<div style="background:rgba(245,158,11,0.08); color:var(--accent-amber); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:10px; margin-bottom:16px; font-size:10px; text-align:center; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <i data-lucide="cloud-off" style="width:12px; height:12px;"></i> SHOWING OFFLINE LEDGER ARCHIVE
+      </div>`;
+    }
+
+    html += `<div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-slate);">
+        <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Ledger Total</div>
+        <div style="font-size:20px; font-weight:800; color:var(--text-primary);">₹${Math.round(totalAmount).toLocaleString('en-IN')}</div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-emerald);">
+          <i data-lucide="check-circle" style="width:12px; height:12px;"></i> Paid: ₹${Math.round(paidAmount).toLocaleString('en-IN')}
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-amber);">
+          <i data-lucide="clock" style="width:12px; height:12px;"></i> Unpaid: ₹${Math.round(totalAmount - paidAmount).toLocaleString('en-IN')}
+        </div>
+      </div>
+    </div>`;
+
+    // Combine data points for rendering
+    const displayRows = allCustIds.map(cid => {
+      const bill = (bills || []).find(b => b.customer_id === cid);
+      const d = delMap[cid] || { jars: 0, bottles: 0 };
+      return {
+        cid,
+        name: nameMap[cid] || 'Customer #' + cid,
+        bill,
+        d,
+        isGenerated: !!bill
+      };
+    });
+
+    // Sort alphabetically
+    displayRows.sort((a,b) => a.name.localeCompare(b.name));
+
+    displayRows.forEach(row => {
+      const color = App.getAvatarColor(row.name);
+      if (row.isGenerated) {
+        const isPaid = row.bill.status === 'PAID';
+        html += `<div class="list-item" onclick="Bills.showDetail(${row.bill.id})">
+          <div class="list-avatar" style="background:${color}">${row.name.charAt(0).toUpperCase()}</div>
+          <div class="list-content">
+            <div class="list-name">${row.name}</div>
+            <div class="list-detail">
+              <i data-lucide="droplets" class="icon-xxs"></i> ${row.bill.total_jars} &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${row.bill.total_bottles} &nbsp;·&nbsp; <span class="badge ${isPaid?'badge-paid':'badge-pending'}">${row.bill.status}</span>
+            </div>
+          </div>
+          <div class="list-right"><div class="list-value" style="color:${isPaid?'var(--accent-emerald)':'var(--accent-amber)'}">₹${Math.round(row.bill.grand_total)}</div></div>
+        </div>`;
+      } else {
+        html += `<div class="list-item" onclick="Bills.showUnbilledDetail('${encodeURIComponent(row.name)}', ${row.d.jars}, ${row.d.bottles}, ${row.cid})">
+          <div class="list-avatar" style="background:${color}">${row.name.charAt(0).toUpperCase()}</div>
+          <div class="list-content">
+            <div class="list-name">${row.name}</div>
+            <div class="list-detail">
+              <i data-lucide="droplets" class="icon-xxs"></i> ${row.d.jars} &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${row.d.bottles} &nbsp;·&nbsp; <span class="badge" style="background:rgba(255,255,255,0.04); color:var(--accent-cyan);"><i data-lucide="activity" style="width:8px; height:8px;"></i> OPEN</span>
+            </div>
+          </div>
+          <div class="list-right"><div class="list-value" style="color:var(--text-muted); font-size:11px; font-weight:700;">Draft</div></div>
+        </div>`;
+      }
+    });
+    
+    div.innerHTML = html;
+    App.refreshIcons();
   },
 
   async showUnbilledDetail(name, jars, bottles, cid) {
@@ -580,27 +632,39 @@ const Bills = {
   },
 
   async deleteBill(id) {
-    if (!confirm('Permenantly erase this invoice from the ledger?')) return;
-    const { error } = await supabase.from('bills').delete().eq('id', id);
-    if (error) { App.toast('Operation failed.', 'warning'); return; }
-    App.closeModal();
-    App.toast('Ledger entry removed.');
-    this.load();
+    if (!confirm('Permanently erase this invoice from the ledger?')) return;
+    try {
+      const res = await OfflineVault.safeWrite('DELETE', 'bills', null, { id });
+      if (res.error) throw res.error;
+      App.closeModal();
+      App.toast('Ledger entry removed.');
+      this.load();
+    } catch (e) {
+      App.toast('Operation failed: ' + e.message, 'warning');
+    }
   },
 
   async markPaid(id) {
-    const { error } = await supabase.from('bills').update({ status: 'PAID', updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { App.toast('Operation failed.', 'warning'); return; }
-    App.closeModal();
-    App.toast('Invoice status set to PAID.');
-    this.load();
+    try {
+      const res = await OfflineVault.safeWrite('UPDATE', 'bills', { status: 'PAID', updated_at: new Date().toISOString() }, { id });
+      if (res.error) throw res.error;
+      App.closeModal();
+      App.toast('Invoice status set to PAID.');
+      this.load();
+    } catch (e) {
+      App.toast('Operation failed: ' + e.message, 'warning');
+    }
   },
 
   async markPending(id) {
-    const { error } = await supabase.from('bills').update({ status: 'PENDING', updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { App.toast('Operation failed.', 'warning'); return; }
-    App.closeModal();
-    App.toast('Invoice set to outstanding.');
-    this.load();
+    try {
+      const res = await OfflineVault.safeWrite('UPDATE', 'bills', { status: 'PENDING', updated_at: new Date().toISOString() }, { id });
+      if (res.error) throw res.error;
+      App.closeModal();
+      App.toast('Invoice set to outstanding.');
+      this.load();
+    } catch (e) {
+      App.toast('Operation failed: ' + e.message, 'warning');
+    }
   }
 };

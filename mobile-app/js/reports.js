@@ -32,9 +32,11 @@ const Reports = {
       const cacheKey = `report_grid_${y}_${m}`;
 
       // Modern Speed Hack: Hydrate from local cache instantly!
+      let hydrated = false;
       const cachedHtml = localStorage.getItem(cacheKey);
       if (cachedHtml) {
         content.innerHTML = cachedHtml;
+        hydrated = true;
       } else {
         content.innerHTML = '<div class="spinner"></div>';
       }
@@ -293,8 +295,12 @@ const Reports = {
 
     } catch (e) {
       console.error(e);
-      content.innerHTML = `<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Aggregation failure: ${e.message}</div></div>`;
-      App.refreshIcons();
+      if (!hydrated) {
+        content.innerHTML = `<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Aggregation failure: ${e.message}</div></div>`;
+        App.refreshIcons();
+      } else {
+        App.toast('📶 Loaded offline report matrix.', 'warning');
+      }
     }
   }
 };
