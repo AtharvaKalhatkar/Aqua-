@@ -504,39 +504,48 @@ public class BillView extends VBox {
 
         TableColumn<Bill, String> custCol = new TableColumn<>("Customer");
         custCol.setCellValueFactory(new PropertyValueFactory<>("customerName"));
-        custCol.setPrefWidth(170);
+        custCol.setPrefWidth(150);
+        custCol.setMinWidth(120);
 
         TableColumn<Bill, Integer> jarsCol = new TableColumn<>("Jars");
         jarsCol.setCellValueFactory(new PropertyValueFactory<>("totalJars"));
-        jarsCol.setPrefWidth(70);
+        jarsCol.setPrefWidth(60);
+        jarsCol.setMinWidth(50);
 
         TableColumn<Bill, Double> jrCol = new TableColumn<>("Jar Rate");
         jrCol.setCellValueFactory(new PropertyValueFactory<>("jarRate"));
         jrCol.setPrefWidth(80);
+        jrCol.setMinWidth(70);
 
         TableColumn<Bill, Double> jaCol = new TableColumn<>("Jar Amt");
         jaCol.setCellValueFactory(new PropertyValueFactory<>("jarAmount"));
-        jaCol.setPrefWidth(90);
+        jaCol.setPrefWidth(85);
+        jaCol.setMinWidth(75);
 
         TableColumn<Bill, Integer> botCol = new TableColumn<>("Bottles");
         botCol.setCellValueFactory(new PropertyValueFactory<>("totalBottles"));
         botCol.setPrefWidth(70);
+        botCol.setMinWidth(60);
 
         TableColumn<Bill, Double> brCol = new TableColumn<>("Bottle Rate");
         brCol.setCellValueFactory(new PropertyValueFactory<>("bottleRate"));
-        brCol.setPrefWidth(90);
+        brCol.setPrefWidth(85);
+        brCol.setMinWidth(75);
 
         TableColumn<Bill, Double> baCol = new TableColumn<>("Bottle Amt");
         baCol.setCellValueFactory(new PropertyValueFactory<>("bottleAmount"));
-        baCol.setPrefWidth(90);
+        baCol.setPrefWidth(85);
+        baCol.setMinWidth(75);
 
         TableColumn<Bill, Double> totalCol = new TableColumn<>("Total ₹");
         totalCol.setCellValueFactory(new PropertyValueFactory<>("grandTotal"));
-        totalCol.setPrefWidth(100);
+        totalCol.setPrefWidth(90);
+        totalCol.setMinWidth(80);
 
         TableColumn<Bill, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
-        statusCol.setPrefWidth(80);
+        statusCol.setPrefWidth(95);
+        statusCol.setMinWidth(90);
         statusCol.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -553,20 +562,29 @@ public class BillView extends VBox {
         });
 
         TableColumn<Bill, Void> actCol = new TableColumn<>("Actions");
-        actCol.setPrefWidth(220);
+        actCol.setPrefWidth(230);
+        actCol.setMinWidth(220);
         actCol.setCellFactory(col -> new TableCell<>() {
             private final Button pdfBtn = new Button("📄");
             private final Button emailActBtn = new Button("📧");
             private final Button waActBtn = new Button("💬");
             private final Button paidBtn = new Button("✅");
-            private final HBox box = new HBox(5, pdfBtn, emailActBtn, waActBtn, paidBtn);
+            private final HBox box = new HBox(6, pdfBtn, emailActBtn, waActBtn, paidBtn);
             {
                 pdfBtn.getStyleClass().add("btn-small-edit");
+                pdfBtn.setMinWidth(36); pdfBtn.setPrefWidth(36);
+                
                 emailActBtn.getStyleClass().add("btn-small-edit");
+                emailActBtn.setMinWidth(36); emailActBtn.setPrefWidth(36);
                 emailActBtn.setStyle("-fx-background-color: #e3f2fd; -fx-text-fill: #0069b4;");
+                
                 waActBtn.getStyleClass().add("btn-small-edit");
+                waActBtn.setMinWidth(36); waActBtn.setPrefWidth(36);
                 waActBtn.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #25D366;");
+                
                 paidBtn.getStyleClass().add("btn-small-edit");
+                paidBtn.setMinWidth(92); paidBtn.setPrefWidth(92);
+                
                 box.setAlignment(Pos.CENTER);
                 pdfBtn.setOnAction(e -> exportBillPDF(getTableView().getItems().get(getIndex())));
                 emailActBtn.setOnAction(e -> emailBillFromTable(getTableView().getItems().get(getIndex())));
