@@ -379,7 +379,7 @@ public class ReportsView extends VBox {
             row[totalBotIdx] = String.valueOf(custBottles);
             
             double custMoney = billLookup.getOrDefault(c.getId(), 0.0);
-            row[totalAmtIdx] = com.aqua.util.VaultManager.mask("₹" + Math.round(custMoney));
+            row[totalAmtIdx] = "₹" + Math.round(custMoney);
 
             grandJars += custJars;
             grandBottles += custBottles;
@@ -401,7 +401,7 @@ public class ReportsView extends VBox {
             }
             totalRow[totalJarIdx] = String.valueOf(grandJars);
             totalRow[totalBotIdx] = String.valueOf(grandBottles);
-            totalRow[totalAmtIdx] = com.aqua.util.VaultManager.mask("₹" + Math.round(grandMoney));
+            totalRow[totalAmtIdx] = "₹" + Math.round(grandMoney);
             rows.add(totalRow);
         }
 
@@ -413,7 +413,7 @@ public class ReportsView extends VBox {
         
         if (grandMoney > 0) {
             combStatTitle.setText("💰 GRAND TOTAL REVENUE");
-            combStatLabel.setText(com.aqua.util.VaultManager.mask("₹" + String.format("%,d", Math.round(grandMoney))));
+            combStatLabel.setText("₹" + String.format("%,d", Math.round(grandMoney)));
             combStatCard.setStyle("-fx-background-color: linear-gradient(to right, #fbc02d, #f57c00); -fx-background-radius: 10;");
         } else {
             combStatTitle.setText("📊 GRAND TOTAL UNITS");

@@ -37,14 +37,6 @@ const App = {
     this.refreshIcons();
   },
 
-  onIncomeClick() {
-    if (sessionStorage.getItem('owner_authed') !== 'true') {
-      this.promptOwnerPin('Dashboard');
-    } else {
-      this.navigate('Vault');
-    }
-  },
-
   promptOwnerPin(targetPage) {
     this.showModal(`
       <div style="text-align:center; padding:10px 0;">

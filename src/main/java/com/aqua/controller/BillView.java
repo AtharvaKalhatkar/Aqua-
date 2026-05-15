@@ -476,7 +476,6 @@ public class BillView extends VBox {
 
         TableColumn<Bill, Double> jaCol = new TableColumn<>("Jar Amt");
         jaCol.setCellValueFactory(new PropertyValueFactory<>("jarAmount"));
-        jaCol.setCellFactory(createCurrencyMaskedCellFactory());
         jaCol.setPrefWidth(90);
 
         TableColumn<Bill, Integer> botCol = new TableColumn<>("Bottles");
@@ -489,12 +488,10 @@ public class BillView extends VBox {
 
         TableColumn<Bill, Double> baCol = new TableColumn<>("Bottle Amt");
         baCol.setCellValueFactory(new PropertyValueFactory<>("bottleAmount"));
-        baCol.setCellFactory(createCurrencyMaskedCellFactory());
         baCol.setPrefWidth(90);
 
         TableColumn<Bill, Double> totalCol = new TableColumn<>("Total ₹");
         totalCol.setCellValueFactory(new PropertyValueFactory<>("grandTotal"));
-        totalCol.setCellFactory(createCurrencyMaskedCellFactory());
         totalCol.setPrefWidth(100);
 
         TableColumn<Bill, String> statusCol = new TableColumn<>("Status");
@@ -634,9 +631,9 @@ public class BillView extends VBox {
             double jr = jarRateField.getText().isEmpty() ? 0 : Double.parseDouble(jarRateField.getText());
             double br = bottleRateField.getText().isEmpty() ? 0 : Double.parseDouble(bottleRateField.getText());
             double ja = jars * jr, ba = bottles * br;
-            jarAmountLabel.setText(com.aqua.util.VaultManager.mask(String.format("= ₹ %.0f", ja)));
-            bottleAmountLabel.setText(com.aqua.util.VaultManager.mask(String.format("= ₹ %.0f", ba)));
-            grandTotalLabel.setText(com.aqua.util.VaultManager.mask(String.format("₹ %.0f", ja + ba)));
+            jarAmountLabel.setText(String.format("= ₹ %.0f", ja));
+            bottleAmountLabel.setText(String.format("= ₹ %.0f", ba));
+            grandTotalLabel.setText(String.format("₹ %.0f", ja + ba));
         } catch (NumberFormatException e) {
             // ignore during typing
         }
@@ -1062,9 +1059,9 @@ public class BillView extends VBox {
         totalBottlesLabel.setText("0");
         jarRateField.clear();
         bottleRateField.clear();
-        jarAmountLabel.setText(com.aqua.util.VaultManager.mask("₹ 0.00"));
-        bottleAmountLabel.setText(com.aqua.util.VaultManager.mask("₹ 0.00"));
-        grandTotalLabel.setText(com.aqua.util.VaultManager.mask("₹ 0.00"));
+        jarAmountLabel.setText("₹ 0.00");
+        bottleAmountLabel.setText("₹ 0.00");
+        grandTotalLabel.setText("₹ 0.00");
         customerSearchField.requestFocus();
     }
 
@@ -1074,24 +1071,10 @@ public class BillView extends VBox {
         billTable.setItems(FXCollections.observableArrayList(bills));
         billTable.refresh();
         double total = bills.stream().mapToDouble(Bill::getGrandTotal).sum();
-        totalIncomeLabel.setText(com.aqua.util.VaultManager.mask(String.format("₹ %.2f", total)));
+        totalIncomeLabel.setText(String.format("₹ %.2f", total));
     }
 
     public void refreshData() {
         loadBills();
-    }
-
-    private javafx.util.Callback<TableColumn<Bill, Double>, TableCell<Bill, Double>> createCurrencyMaskedCellFactory() {
-        return col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Double item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(com.aqua.util.VaultManager.mask(String.format("₹%.2f", item)));
-                }
-            }
-        };
     }
 }

@@ -216,7 +216,7 @@ public class DashboardView extends VBox {
 
             totalCustomersLabel.setText(String.valueOf(totalCust));
             todayDeliveriesLabel.setText(String.valueOf(todayDel));
-            monthlyIncomeLabel.setText(com.aqua.util.VaultManager.mask(String.format("₹%.0f", monthIncome)));
+            monthlyIncomeLabel.setText(String.format("₹%.0f", monthIncome));
             pendingBillsLabel.setText(String.valueOf(pendingCount));
 
             // --- Today's Deliveries Panel ---
@@ -314,7 +314,7 @@ public class DashboardView extends VBox {
             if (count >= 8) break;
             HBox row = makeTableRow(
                     b.getCustomerName(),
-                    com.aqua.util.VaultManager.mask(String.format("₹%.0f", b.getGrandTotal())),
+                    String.format("₹%.0f", b.getGrandTotal()),
                     "⏳ Pending",
                     false
             );
@@ -330,7 +330,7 @@ public class DashboardView extends VBox {
             rowsBox.getChildren().add(more);
         }
 
-        HBox totalRow = makeTableRow("Total (" + pending.size() + ")", com.aqua.util.VaultManager.mask(String.format("₹%.0f", totalPending)), "", true);
+        HBox totalRow = makeTableRow("Total (" + pending.size() + ")", String.format("₹%.0f", totalPending), "", true);
         totalRow.setStyle("-fx-background-color: #fff3e0; -fx-background-radius: 6; -fx-border-color: #e67e22; -fx-border-width: 1 0 0 0;");
         rowsBox.getChildren().add(totalRow);
 
@@ -377,11 +377,11 @@ public class DashboardView extends VBox {
         addSummaryItem(grid, 3, 0, "🍶 Bottles Delivered", totalBottles + getChangeIndicator(totalBottles, lastMonthBottles));
 
         // Column 2: Financial summary
-        addSummaryItem(grid, 0, 2, "💳 Total Billed", com.aqua.util.VaultManager.mask(String.format("₹%.0f", totalBilled)));
-        addSummaryItem(grid, 1, 2, "✅ Collected", com.aqua.util.VaultManager.mask(String.format("₹%.0f", paidAmount)));
-        addSummaryItem(grid, 2, 2, "⏳ Outstanding", com.aqua.util.VaultManager.mask(String.format("₹%.0f", pendingAmount)));
+        addSummaryItem(grid, 0, 2, "💳 Total Billed", String.format("₹%.0f", totalBilled));
+        addSummaryItem(grid, 1, 2, "✅ Collected", String.format("₹%.0f", paidAmount));
+        addSummaryItem(grid, 2, 2, "⏳ Outstanding", String.format("₹%.0f", pendingAmount));
         String lastMonthStr = lastMonth.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-        addSummaryItem(grid, 3, 2, "📊 " + lastMonthStr + " Income", com.aqua.util.VaultManager.mask(String.format("₹%.0f", lastMonthIncome)));
+        addSummaryItem(grid, 3, 2, "📊 " + lastMonthStr + " Income", String.format("₹%.0f", lastMonthIncome));
 
         // Column constraints to make it even
         ColumnConstraints col1 = new ColumnConstraints();
