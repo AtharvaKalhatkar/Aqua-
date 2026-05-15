@@ -85,7 +85,10 @@ const Dashboard = {
     const totalIncome = bills.reduce((s, b) => s + (b.grand_total || 0), 0);
     
     document.getElementById('statPending').textContent = pending.length;
-    document.getElementById('statIncome').textContent = '₹' + Math.round(totalIncome).toLocaleString('en-IN');
+    const incEl = document.getElementById('statIncome');
+    if (incEl) {
+      incEl.textContent = '₹' + Math.round(totalIncome).toLocaleString('en-IN');
+    }
 
     // Render Today Deliveries
     const todayDiv = document.getElementById('todayDeliveries');
