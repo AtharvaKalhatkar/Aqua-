@@ -200,8 +200,8 @@ public class SyncEngine {
         try (Statement s = db.createStatement(); ResultSet rs = s.executeQuery(q)) {
             while (rs.next()) {
                 int id = rs.getInt("id");
-                String json = String.format("{\"id\":%d,\"customer_id\":%d,\"bill_month\":%d,\"bill_year\":%d,\"total_jars\":%d,\"total_bottles\":%d,\"grand_total\":%.2f,\"status\":\"%s\"}",
-                    id, rs.getInt("customer_id"), rs.getInt("bill_month"), rs.getInt("bill_year"), rs.getInt("total_jars"), rs.getInt("total_bottles"), rs.getDouble("grand_total"), rs.getString("status"));
+                String json = String.format(java.util.Locale.US, "{\"id\":%d,\"customer_id\":%d,\"bill_month\":%d,\"bill_year\":%d,\"total_jars\":%d,\"total_bottles\":%d,\"jar_rate\":%.2f,\"bottle_rate\":%.2f,\"jar_amount\":%.2f,\"bottle_amount\":%.2f,\"grand_total\":%.2f,\"status\":\"%s\"}",
+                    id, rs.getInt("customer_id"), rs.getInt("bill_month"), rs.getInt("bill_year"), rs.getInt("total_jars"), rs.getInt("total_bottles"), rs.getDouble("jar_rate"), rs.getDouble("bottle_rate"), rs.getDouble("jar_amount"), rs.getDouble("bottle_amount"), rs.getDouble("grand_total"), rs.getString("status"));
                 
                 if (upsertToCloud("bills", json)) {
                     db.createStatement().executeUpdate("UPDATE bills SET sync_status = 'SYNCED' WHERE id = " + id);
