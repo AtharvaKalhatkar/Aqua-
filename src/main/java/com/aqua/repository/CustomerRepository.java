@@ -28,7 +28,7 @@ public class CustomerRepository {
     }
 
     public boolean update(Customer customer) {
-        String sql = "UPDATE customers SET name=?, address=?, mobile=?, route=?, email=? WHERE id=?";
+        String sql = "UPDATE customers SET name=?, address=?, mobile=?, route=?, email=?, sync_status='PENDING' WHERE id=?";
         try (PreparedStatement pstmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
             pstmt.setString(1, customer.getName());
             pstmt.setString(2, customer.getAddress());

@@ -17,7 +17,7 @@ public class BillRepository {
         try {
             Connection conn = DatabaseConnection.getConnection();
             if (existing != null) {
-                String sql = "UPDATE bills SET total_jars=?, total_bottles=?, jar_rate=?, bottle_rate=?, jar_amount=?, bottle_amount=?, grand_total=?, status=?, generated_at=datetime('now') WHERE customer_id=? AND bill_month=? AND bill_year=?";
+                String sql = "UPDATE bills SET total_jars=?, total_bottles=?, jar_rate=?, bottle_rate=?, jar_amount=?, bottle_amount=?, grand_total=?, status=?, generated_at=datetime('now'), sync_status='PENDING' WHERE customer_id=? AND bill_month=? AND bill_year=?";
                 PreparedStatement pstmt = conn.prepareStatement(sql);
                 pstmt.setInt(1, bill.getTotalJars());
                 pstmt.setInt(2, bill.getTotalBottles());
@@ -66,7 +66,7 @@ public class BillRepository {
     }
 
     public boolean updateStatus(int billId, String status) {
-        String sql = "UPDATE bills SET status=? WHERE id=?";
+        String sql = "UPDATE bills SET status=?, sync_status='PENDING' WHERE id=?";
         try {
             PreparedStatement pstmt = DatabaseConnection.getConnection().prepareStatement(sql);
             pstmt.setString(1, status);
