@@ -486,9 +486,21 @@ public class BillView extends VBox {
         billTable = new TableView<>();
         billTable.getStyleClass().add("data-table");
         billTable.setPlaceholder(new Label("No bills yet. Select a customer and enter rates above."));
-        billTable.setMinHeight(200);
-        billTable.setPrefHeight(250);
-        VBox.setVgrow(billTable, Priority.ALWAYS);
+        
+        // Proportional column layout eliminates horizontal scrolls
+        billTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        // Force table height to scale dynamically to fit all rows without inner vertical scrolling
+        billTable.setFixedCellSize(45);
+        billTable.prefHeightProperty().bind(
+            javafx.beans.binding.Bindings.max(200, 
+                billTable.fixedCellSizeProperty().multiply(
+                    javafx.beans.binding.Bindings.size(billTable.getItems()).add(1.15)
+                ).add(38)
+            )
+        );
+        billTable.minHeightProperty().bind(billTable.prefHeightProperty());
+        billTable.maxHeightProperty().bind(billTable.prefHeightProperty());
 
         TableColumn<Bill, String> custCol = new TableColumn<>("Customer");
         custCol.setCellValueFactory(new PropertyValueFactory<>("customerName"));
