@@ -71,18 +71,46 @@ public class App extends Application {
         statusBar.setAlignment(Pos.CENTER_LEFT);
         statusLabel = new Label("Ready");
         statusLabel.setStyle("-fx-text-fill: #8899aa; -fx-font-size: 11px;");
+
+        Button vaultBtn = new Button();
+        vaultBtn.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 3 8; -fx-background-radius: 4; -fx-cursor: hand;");
+        
+        Runnable updateVaultBtn = () -> {
+            boolean locked = com.aqua.util.VaultManager.isLocked();
+            vaultBtn.setText(locked ? "🔒 Vault: HIDDEN" : "🔓 Vault: SHOWN");
+            vaultBtn.setStyle(locked 
+                ? "-fx-background-color: #ffebee; -fx-text-fill: #c62828; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 3 8; -fx-background-radius: 4; -fx-cursor: hand;"
+                : "-fx-background-color: #e3f2fd; -fx-text-fill: #0d47a1; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 3 8; -fx-background-radius: 4; -fx-cursor: hand;"
+            );
+            // Refresh visible data across pages to apply mask immediately
+            if (dashboardView != null) dashboardView.refreshData();
+            if (billView != null) billView.refreshData();
+            if (reportsView != null) reportsView.refreshData();
+        };
+
+        vaultBtn.setOnAction(e -> {
+            com.aqua.util.VaultManager.toggle();
+            updateVaultBtn.run();
+        });
+
         Label dateLabel = new Label("📅 " + LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy")));
         dateLabel.setStyle("-fx-text-fill: #8899aa; -fx-font-size: 11px;");
         Region statusSpacer = new Region();
         HBox.setHgrow(statusSpacer, Priority.ALWAYS);
         Label shortcutHint = new Label("Alt+1-5 Navigate  |  Tab/Enter Form  |  Esc Clear");
         shortcutHint.setStyle("-fx-text-fill: #667788; -fx-font-size: 10px;");
-        statusBar.getChildren().addAll(statusLabel, statusSpacer, dateLabel, new Separator(), shortcutHint);
+        statusBar.getChildren().addAll(statusLabel, vaultBtn, statusSpacer, dateLabel, new Separator(), shortcutHint);
         root.setBottom(statusBar);
 
         dashboardView = new DashboardView();
         customerView = new CustomerView();
         deliveryView = new DeliveryView();
+
+        // Register listener with VaultManager so any toggle updates this button
+        com.aqua.util.VaultManager.addListener(() -> {
+            javafx.application.Platform.runLater(updateVaultBtn);
+        });
+        updateVaultBtn.run(); // Initialize label and styles
         billView = new BillView();
         reportsView = new ReportsView();
 

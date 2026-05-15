@@ -85,7 +85,14 @@ const Dashboard = {
     const totalIncome = bills.reduce((s, b) => s + (b.grand_total || 0), 0);
     
     document.getElementById('statPending').textContent = pending.length;
-    document.getElementById('statIncome').textContent = '₹' + Math.round(totalIncome).toLocaleString('en-IN');
+    
+    const isAuthed = sessionStorage.getItem('owner_authed') === 'true';
+    const incEl = document.getElementById('statIncome');
+    if (isAuthed) {
+      incEl.textContent = '₹' + Math.round(totalIncome).toLocaleString('en-IN');
+    } else {
+      incEl.innerHTML = `<span style="display:inline-flex; align-items:center; justify-content:center; gap:10px;">₹ •••• <i data-lucide="lock" style="width:24px; height:24px; opacity:0.6; stroke-width:1.8px;"></i></span>`;
+    }
 
     // Render Today Deliveries
     const todayDiv = document.getElementById('todayDeliveries');
@@ -137,7 +144,7 @@ const Dashboard = {
             <div class="list-name">${name}</div>
             <div class="list-detail"><span class="badge badge-pending"><i data-lucide="clock"></i> PENDING</span></div>
           </div>
-          <div class="list-right"><div class="list-value" style="color:var(--accent-amber)">₹${Math.round(b.grand_total).toLocaleString('en-IN')}</div></div>
+          <div class="list-right"><div class="list-value" style="color:var(--accent-amber)">${isAuthed ? ('₹' + Math.round(b.grand_total).toLocaleString('en-IN')) : '₹ ••••'}</div></div>
         </div>`;
       });
       pendDiv.innerHTML = html;

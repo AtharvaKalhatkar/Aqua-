@@ -50,15 +50,15 @@ public class SyncEngine {
             System.out.println("🔄 Syncing with Cloud via Secure HTTPS...");
             Connection localDb = DatabaseConnection.getConnection();
 
-            // STEP 1: PULL REMOTE -> LOCAL
-            pullTable("customers", localDb);
-            pullTable("deliveries", localDb);
-            pullTable("bills", localDb);
-
-            // STEP 2: PUSH LOCAL -> REMOTE
+            // STEP 1: PUSH LOCAL -> REMOTE FIRST (Upload changes before downloading)
             pushCustomers(localDb);
             pushDeliveries(localDb);
             pushBills(localDb);
+
+            // STEP 2: PULL REMOTE -> LOCAL SECOND (Merge remaining updates)
+            pullTable("customers", localDb);
+            pullTable("deliveries", localDb);
+            pullTable("bills", localDb);
 
             System.out.println("✅ Cloud Sync Successful!");
 
@@ -102,12 +102,22 @@ public class SyncEngine {
                 String name = extractStr(clean, "\"name\":\"");
                 
                 if (id <= 0 || name == null || name.trim().isEmpty()) {
-                    System.out.println("   [-] Skipped Row: Failed to parse valid ID/Name from snippet.");
                     continue;
                 }
                 
-                System.out.println("   [+] Syncing Customer: " + name + " (ID:" + id + ")...");
-                String q = "INSERT OR REPLACE INTO customers (id, name, address, mobile, route, email, sync_status) VALUES (?, ?, ?, ?, ?, ?, 'SYNCED')";
+                // Safe Upsert Strategy: Never let Cloud pull overwrite PENDING local updates!
+                String q = """
+                    INSERT INTO customers (id, name, address, mobile, route, email, sync_status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'SYNCED')
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        address = excluded.address,
+                        mobile = excluded.mobile,
+                        route = excluded.route,
+                        email = excluded.email,
+                        sync_status = 'SYNCED'
+                    WHERE sync_status != 'PENDING'""";
+                    
                 try (PreparedStatement ps = db.prepareStatement(q)) {
                     ps.setInt(1, id);
                     ps.setString(2, name);
@@ -115,15 +125,25 @@ public class SyncEngine {
                     ps.setString(4, extractStr(clean, "\"mobile\":\""));
                     ps.setString(5, extractStr(clean, "\"route\":\""));
                     ps.setString(6, extractStr(clean, "\"email\":\""));
-                    int aff = ps.executeUpdate();
-                    System.out.println("       -> Saved successfully. Rows affected: " + aff);
+                    ps.executeUpdate();
                     successCount++;
                 }
             } 
             else if (table.equals("deliveries")) {
                 int id = extractInt(clean, "\"id\":");
                 if (id <= 0) continue;
-                String q = "INSERT OR REPLACE INTO deliveries (id, customer_id, delivery_date, jar_qty, bottle_qty, sync_status) VALUES (?, ?, ?, ?, ?, 'SYNCED')";
+                
+                String q = """
+                    INSERT INTO deliveries (id, customer_id, delivery_date, jar_qty, bottle_qty, sync_status)
+                    VALUES (?, ?, ?, ?, ?, 'SYNCED')
+                    ON CONFLICT(id) DO UPDATE SET
+                        customer_id = excluded.customer_id,
+                        delivery_date = excluded.delivery_date,
+                        jar_qty = excluded.jar_qty,
+                        bottle_qty = excluded.bottle_qty,
+                        sync_status = 'SYNCED'
+                    WHERE sync_status != 'PENDING'""";
+                    
                 try (PreparedStatement ps = db.prepareStatement(q)) {
                     ps.setInt(1, id);
                     ps.setInt(2, extractInt(clean, "\"customer_id\":"));
@@ -137,7 +157,25 @@ public class SyncEngine {
             else if (table.equals("bills")) {
                 int id = extractInt(clean, "\"id\":");
                 if (id <= 0) continue;
-                String q = "INSERT OR REPLACE INTO bills (id, customer_id, bill_month, bill_year, total_jars, total_bottles, jar_rate, bottle_rate, jar_amount, bottle_amount, grand_total, status, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SYNCED')";
+                
+                String q = """
+                    INSERT INTO bills (id, customer_id, bill_month, bill_year, total_jars, total_bottles, jar_rate, bottle_rate, jar_amount, bottle_amount, grand_total, status, sync_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SYNCED')
+                    ON CONFLICT(id) DO UPDATE SET
+                        customer_id = excluded.customer_id,
+                        bill_month = excluded.bill_month,
+                        bill_year = excluded.bill_year,
+                        total_jars = excluded.total_jars,
+                        total_bottles = excluded.total_bottles,
+                        jar_rate = excluded.jar_rate,
+                        bottle_rate = excluded.bottle_rate,
+                        jar_amount = excluded.jar_amount,
+                        bottle_amount = excluded.bottle_amount,
+                        grand_total = excluded.grand_total,
+                        status = excluded.status,
+                        sync_status = 'SYNCED'
+                    WHERE sync_status != 'PENDING'""";
+                    
                 try (PreparedStatement ps = db.prepareStatement(q)) {
                     ps.setInt(1, id);
                     ps.setInt(2, extractInt(clean, "\"customer_id\":"));
@@ -170,7 +208,8 @@ public class SyncEngine {
                 String json = String.format("{\"id\":%d,\"name\":\"%s\",\"address\":\"%s\",\"mobile\":\"%s\",\"route\":\"%s\",\"email\":\"%s\"}",
                     id, rs.getString("name"), rs.getString("address"), rs.getString("mobile"), rs.getString("route"), rs.getString("email"));
                 
-                if (upsertToCloud("customers", json)) {
+                String resp = upsertToCloud("customers", json);
+                if (resp != null) {
                     db.createStatement().executeUpdate("UPDATE customers SET sync_status = 'SYNCED' WHERE id = " + id);
                 }
             }
@@ -185,9 +224,15 @@ public class SyncEngine {
                 String json = String.format("{\"customer_id\":%d,\"delivery_date\":\"%s\",\"jar_qty\":%d,\"bottle_qty\":%d}",
                     rs.getInt("customer_id"), rs.getString("delivery_date"), rs.getInt("jar_qty"), rs.getInt("bottle_qty"));
                 
-                // For deliveries, if ID is system generated, send WITHOUT ID so serial works
-                if (upsertToCloud("deliveries", json)) {
-                    db.createStatement().executeUpdate("UPDATE deliveries SET sync_status = 'SYNCED' WHERE id = " + id);
+                String resp = upsertToCloud("deliveries", json);
+                if (resp != null) {
+                    // Reconcile Cloud ID: parse returned 'id' from representation to prevent duplication!
+                    int cloudId = extractInt(resp, "\"id\":");
+                    if (cloudId > 0) {
+                        db.createStatement().executeUpdate("UPDATE deliveries SET id = " + cloudId + ", sync_status = 'SYNCED' WHERE id = " + id);
+                    } else {
+                        db.createStatement().executeUpdate("UPDATE deliveries SET sync_status = 'SYNCED' WHERE id = " + id);
+                    }
                 }
             }
         }
@@ -201,14 +246,15 @@ public class SyncEngine {
                 String json = String.format("{\"id\":%d,\"customer_id\":%d,\"bill_month\":%d,\"bill_year\":%d,\"total_jars\":%d,\"total_bottles\":%d,\"grand_total\":%.2f,\"status\":\"%s\"}",
                     id, rs.getInt("customer_id"), rs.getInt("bill_month"), rs.getInt("bill_year"), rs.getInt("total_jars"), rs.getInt("total_bottles"), rs.getDouble("grand_total"), rs.getString("status"));
                 
-                if (upsertToCloud("bills", json)) {
+                String resp = upsertToCloud("bills", json);
+                if (resp != null) {
                     db.createStatement().executeUpdate("UPDATE bills SET sync_status = 'SYNCED' WHERE id = " + id);
                 }
             }
         }
     }
 
-    private static boolean upsertToCloud(String table, String jsonPayload) throws Exception {
+    private static String upsertToCloud(String table, String jsonPayload) throws Exception {
         String url = BASE_URL + table;
         if (!table.equals("deliveries")) {
             url += "?on_conflict=id";
@@ -219,12 +265,17 @@ public class SyncEngine {
             .header("apikey", API_KEY)
             .header("Authorization", "Bearer " + API_KEY)
             .header("Content-Type", "application/json")
-            .header("Prefer", "resolution=merge-duplicates") 
+            .header("Prefer", "resolution=merge-duplicates,return=representation") 
             .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
             .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return response.statusCode() >= 200 && response.statusCode() < 300;
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            return response.body();
+        } else {
+            System.err.println("⚠️ Cloud Push Rejected [" + table + "]: HTTP " + response.statusCode() + " | Err: " + response.body());
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------------
