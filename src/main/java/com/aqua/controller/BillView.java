@@ -40,6 +40,7 @@ public class BillView extends VBox {
     private ComboBox<String> monthCombo, routeCombo;
     private ComboBox<Integer> yearCombo;
     private TextField customerSearchField;
+    private CheckBox onlyActiveFilterCheckBox;
     private ListView<Customer> customerSuggestionList;
     private Popup suggestionPopup;
     private Customer selectedCustomer = null;
@@ -82,6 +83,7 @@ public class BillView extends VBox {
             monthCombo.getItems().add(m.getDisplayName(TextStyle.FULL, Locale.ENGLISH));
         monthCombo.getSelectionModel().select(LocalDate.now().getMonthValue() - 1);
         monthCombo.setPrefWidth(140);
+        monthCombo.setOnAction(e -> refreshCustomerSearch());
 
         yearCombo = new ComboBox<>();
         int cy = LocalDate.now().getYear();
@@ -89,6 +91,7 @@ public class BillView extends VBox {
             yearCombo.getItems().add(y);
         yearCombo.getSelectionModel().select(Integer.valueOf(cy));
         yearCombo.setPrefWidth(90);
+        yearCombo.setOnAction(e -> refreshCustomerSearch());
 
         routeCombo = new ComboBox<>();
         routeCombo.getItems().add("All Routes");
@@ -134,13 +137,28 @@ public class BillView extends VBox {
             return;
         String route = getSelectedRoute();
         String text = customerSearchField != null ? customerSearchField.getText() : "";
+        int m = getMonth();
+        int y = getYear();
+        boolean onlyActive = onlyActiveFilterCheckBox != null && onlyActiveFilterCheckBox.isSelected();
+
         List<Customer> results;
-        if (route != null) {
-            results = text.isEmpty() ? customerService.getCustomersByRoute(route)
-                    : customerService.searchCustomersByRoute(text, route);
+        if (onlyActive) {
+            if (route != null) {
+                results = text.isEmpty() ? customerService.getActiveCustomersInMonthByRoute(m, y, route)
+                        : customerService.searchActiveCustomersInMonthAndRoute(text, m, y, route);
+            } else {
+                results = text.isEmpty() ? customerService.getActiveCustomersInMonth(m, y)
+                        : customerService.searchActiveCustomersInMonth(text, m, y);
+            }
         } else {
-            results = text.isEmpty() ? customerService.getAllCustomers() : customerService.searchCustomers(text);
+            if (route != null) {
+                results = text.isEmpty() ? customerService.getCustomersByRoute(route)
+                        : customerService.searchCustomersByRoute(text, route);
+            } else {
+                results = text.isEmpty() ? customerService.getAllCustomers() : customerService.searchCustomers(text);
+            }
         }
+
         if (customerSuggestionList != null) {
             customerSuggestionList.setItems(FXCollections.observableArrayList(results));
             if (!results.isEmpty() && customerSearchField.isFocused()) {
@@ -177,9 +195,19 @@ public class BillView extends VBox {
 
         // Customer search - full width
         VBox searchBox = new VBox(6);
+        
+        HBox customerLabelBox = new HBox(15);
+        customerLabelBox.setAlignment(Pos.CENTER_LEFT);
         Label searchLabel = new Label("Customer *");
         searchLabel.getStyleClass().add("form-label");
-        searchBox.getChildren().add(searchLabel);
+        
+        onlyActiveFilterCheckBox = new CheckBox("Only show customers with active deliveries this month");
+        onlyActiveFilterCheckBox.setSelected(true);
+        onlyActiveFilterCheckBox.setStyle("-fx-font-size: 12px; -fx-text-fill: #0069b4; -fx-font-weight: bold;");
+        onlyActiveFilterCheckBox.setOnAction(e -> refreshCustomerSearch());
+        
+        customerLabelBox.getChildren().addAll(searchLabel, onlyActiveFilterCheckBox);
+        searchBox.getChildren().add(customerLabelBox);
 
         customerSearchField = new TextField();
         customerSearchField.setPromptText("🔍 Type customer name to search... (select Route first to filter)");

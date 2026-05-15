@@ -123,6 +123,80 @@ public class CustomerRepository {
         return 0;
     }
 
+    public List<Customer> findActiveInMonth(int month, int year) {
+        List<Customer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT c.id, c.name, c.address, c.mobile, c.route, c.email " +
+                     "FROM customers c " +
+                     "JOIN deliveries d ON c.id = d.customer_id " +
+                     "WHERE CAST(strftime('%m',d.delivery_date) AS INTEGER)=? AND CAST(strftime('%Y',d.delivery_date) AS INTEGER)=? " +
+                     "AND (d.jar_qty > 0 OR d.bottle_qty > 0) " +
+                     "ORDER BY c.name ASC";
+        try (PreparedStatement pstmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, month);
+            pstmt.setInt(2, year);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) list.add(map(rs));
+        } catch (SQLException e) { System.err.println("Error fetching active customers: " + e.getMessage()); }
+        return list;
+    }
+
+    public List<Customer> findActiveInMonthByRoute(int month, int year, String route) {
+        List<Customer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT c.id, c.name, c.address, c.mobile, c.route, c.email " +
+                     "FROM customers c " +
+                     "JOIN deliveries d ON c.id = d.customer_id " +
+                     "WHERE CAST(strftime('%m',d.delivery_date) AS INTEGER)=? AND CAST(strftime('%Y',d.delivery_date) AS INTEGER)=? " +
+                     "AND LOWER(c.route)=LOWER(?) AND (d.jar_qty > 0 OR d.bottle_qty > 0) " +
+                     "ORDER BY c.name ASC";
+        try (PreparedStatement pstmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, month);
+            pstmt.setInt(2, year);
+            pstmt.setString(3, route);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) list.add(map(rs));
+        } catch (SQLException e) { System.err.println("Error fetching active by route: " + e.getMessage()); }
+        return list;
+    }
+
+    public List<Customer> searchActiveInMonth(String name, int month, int year) {
+        List<Customer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT c.id, c.name, c.address, c.mobile, c.route, c.email " +
+                     "FROM customers c " +
+                     "JOIN deliveries d ON c.id = d.customer_id " +
+                     "WHERE LOWER(c.name) LIKE ? " +
+                     "AND CAST(strftime('%m',d.delivery_date) AS INTEGER)=? AND CAST(strftime('%Y',d.delivery_date) AS INTEGER)=? " +
+                     "AND (d.jar_qty > 0 OR d.bottle_qty > 0) " +
+                     "ORDER BY c.name ASC";
+        try (PreparedStatement pstmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setString(1, name.toLowerCase() + "%");
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) list.add(map(rs));
+        } catch (SQLException e) { System.err.println("Error searching active customers: " + e.getMessage()); }
+        return list;
+    }
+
+    public List<Customer> searchActiveInMonthAndRoute(String name, int month, int year, String route) {
+        List<Customer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT c.id, c.name, c.address, c.mobile, c.route, c.email " +
+                     "FROM customers c " +
+                     "JOIN deliveries d ON c.id = d.customer_id " +
+                     "WHERE LOWER(c.name) LIKE ? AND LOWER(c.route)=LOWER(?) " +
+                     "AND CAST(strftime('%m',d.delivery_date) AS INTEGER)=? AND CAST(strftime('%Y',d.delivery_date) AS INTEGER)=? " +
+                     "AND (d.jar_qty > 0 OR d.bottle_qty > 0) " +
+                     "ORDER BY c.name ASC";
+        try (PreparedStatement pstmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setString(1, name.toLowerCase() + "%");
+            pstmt.setString(2, route);
+            pstmt.setInt(3, month);
+            pstmt.setInt(4, year);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) list.add(map(rs));
+        } catch (SQLException e) { System.err.println("Error searching active by route: " + e.getMessage()); }
+        return list;
+    }
+
     private Customer map(ResultSet rs) throws SQLException {
         String email = "";
         try { email = rs.getString("email"); } catch (SQLException ignored) {}

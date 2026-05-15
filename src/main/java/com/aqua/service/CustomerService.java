@@ -28,4 +28,23 @@ public class CustomerService {
         if (name == null || name.trim().isEmpty()) return repository.findByRoute(route);
         return repository.searchByNameAndRoute(name.trim(), route);
     }
+
+    public List<Customer> getActiveCustomersInMonth(int month, int year) {
+        return repository.findActiveInMonth(month, year);
+    }
+
+    public List<Customer> getActiveCustomersInMonthByRoute(int month, int year, String route) {
+        return repository.findActiveInMonthByRoute(month, year, route);
+    }
+
+    public List<Customer> searchActiveCustomersInMonth(String name, int month, int year) {
+        if (name == null || name.trim().isEmpty()) return repository.findActiveInMonth(month, year);
+        return repository.searchActiveInMonth(name.trim(), month, year);
+    }
+
+    public List<Customer> searchActiveCustomersInMonthAndRoute(String name, int month, int year, String route) {
+        if (route == null || route.isEmpty()) return searchActiveCustomersInMonth(name, month, year);
+        if (name == null || name.trim().isEmpty()) return repository.findActiveInMonthByRoute(month, year, route);
+        return repository.searchActiveInMonthAndRoute(name.trim(), month, year, route);
+    }
 }
