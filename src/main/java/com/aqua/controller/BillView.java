@@ -777,10 +777,10 @@ public class BillView extends VBox {
             double br = Double.parseDouble(bottleRateField.getText().trim());
             Bill bill = billService.generateBill(selectedCustomer, getMonth(), getYear(), jr, br);
             LocalDate[] range = billService.getDateRange(bill.getCustomerId(), bill.getBillMonth(), bill.getBillYear());
-            String tmp = System.getProperty("java.io.tmpdir") + "aqua_print.pdf";
+            String tmp = System.getProperty("java.io.tmpdir") + File.separator + "aqua_print.pdf";
             PDFGenerator.generateInvoice(bill, tmp, range);
             if (Desktop.isDesktopSupported())
-                Desktop.getDesktop().print(new File(tmp));
+                Desktop.getDesktop().open(new File(tmp));
             loadBills();
         } catch (Exception e) {
             AlertUtil.showError("Print Error", e.getMessage());
