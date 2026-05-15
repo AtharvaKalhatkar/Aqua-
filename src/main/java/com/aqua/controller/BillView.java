@@ -233,9 +233,17 @@ public class BillView extends VBox {
                     HBox cell = new HBox(10);
                     cell.setAlignment(Pos.CENTER_LEFT);
                     cell.setPadding(new Insets(4, 8, 4, 8));
+                    boolean hasBill = false;
+                    if (billTable != null && billTable.getItems() != null) {
+                        hasBill = billTable.getItems().stream().anyMatch(b -> b.getCustomerId() == item.getId());
+                    }
                     Label nameLabel = new Label(item.getName());
                     nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 13));
-                    nameLabel.setStyle("-fx-text-fill: #1a1a2e;");
+                    if (hasBill) {
+                        nameLabel.setStyle("-fx-text-fill: #2e7d32;"); // Rich Green for billed customers
+                    } else {
+                        nameLabel.setStyle("-fx-text-fill: #d32f2f;"); // Vibrant Red for pending customers
+                    }
                     Label routeLabel = new Label(item.getRoute() != null ? "📍 " + item.getRoute() : "");
                     routeLabel.setStyle("-fx-text-fill: #6c757d; -fx-font-size: 11px;");
                     Region spacer = new Region();
