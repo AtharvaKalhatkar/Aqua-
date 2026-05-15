@@ -852,16 +852,20 @@ public class BillView extends VBox {
             msg.append("*Grand Total: ₹").append(String.format("%.0f", bill.getGrandTotal())).append("*\n\n");
 
             String upiId = emailService.getUpiId();
-            if (upiId != null && !upiId.isEmpty()) {
-                String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
-                        : "Bhairavnath Cool Aqua";
-                String upiUri = String.format("upi://pay?pa=%s&pn=%s&am=%.0f&cu=INR",
-                        upiId.replace(" ", ""),
-                        senderName.replace(" ", "%20"),
-                        bill.getGrandTotal());
-                msg.append("Pay instantly via UPI (Click below):\n");
-                msg.append(upiUri).append("\n\n");
+            if (upiId == null || upiId.trim().isEmpty()) {
+                upiId = "kalhatkaratharva01@okhdfcbank"; // Robust business fallback
             }
+
+            String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
+                    : "Bhairavnath Cool Aqua";
+            String upiUri = String.format("upi://pay?pa=%s&pn=%s&am=%.0f&cu=INR&tn=AquaBill",
+                    upiId.trim().replace(" ", ""),
+                    senderName.trim().replace(" ", "%20"),
+                    bill.getGrandTotal());
+
+            msg.append("💳 *Pay Instantly via UPI (GPay/PhonePe/Paytm):*\n");
+            msg.append(upiUri).append("\n\n");
+            msg.append("Or pay directly to UPI ID: *").append(upiId.trim()).append("*\n\n");
 
             msg.append("Thank you for your business!\n");
             msg.append("Mob: 7030355656 / 8888355656");
@@ -944,8 +948,8 @@ public class BillView extends VBox {
                     "<div style=\"font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;\">");
             bodyHtml.append("<h2 style=\"color: #0069b4; text-align: center;\">Bhairavnath Cool Aqua</h2>");
             bodyHtml.append("<p>Dear <strong>").append(bill.getCustomerName()).append("</strong>,</p>");
-            bodyHtml.append("<p>Please find attached your water delivery bill for <strong>").append(bill.getMonthName())
-                    .append(" ").append(bill.getBillYear()).append("</strong>.</p>");
+            bodyHtml.append("<p>Your water delivery bill for <strong>").append(bill.getMonthName())
+                    .append(" ").append(bill.getBillYear()).append("</strong> is ready.</p>");
 
             bodyHtml.append("<div style=\"background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;\">");
             bodyHtml.append("<h3 style=\"margin-top: 0; color: #555;\">Bill Summary</h3>");
@@ -966,30 +970,32 @@ public class BillView extends VBox {
             bodyHtml.append("</div>");
 
             String upiId = emailService.getUpiId();
-            if (upiId != null && !upiId.isEmpty()) {
-                String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
-                        : "Bhairavnath Cool Aqua";
-                try {
-                    String upiUri = String.format("upi://pay?pa=%s&pn=%s&am=%.0f&cu=INR",
-                            upiId.replace(" ", ""),
-                            senderName.replace(" ", "%20"),
-                            bill.getGrandTotal());
+            if (upiId == null || upiId.isEmpty()) {
+                upiId = "kalhatkaratharva01@okhdfcbank"; // Robust fallback to ensure payment links are never missing
+            }
+            
+            String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
+                    : "Bhairavnath Cool Aqua";
+            try {
+                String upiUri = String.format("upi://pay?pa=%s&pn=%s&am=%.0f&cu=INR",
+                        upiId.replace(" ", ""),
+                        senderName.replace(" ", "%20"),
+                        bill.getGrandTotal());
 
-                    String qrData = java.net.URLEncoder.encode(upiUri, "UTF-8");
-                    String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
+                String qrData = java.net.URLEncoder.encode(upiUri, "UTF-8");
+                String qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + qrData;
 
-                    bodyHtml.append("<div style=\"text-align: center; margin: 30px 0;\">");
-                    bodyHtml.append("<a href=\"").append(upiUri).append(
-                            "\" style=\"background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;\">Pay &#8377;")
-                            .append(String.format("%.0f", bill.getGrandTotal())).append(" instantly via UPI</a><br/>");
-                    bodyHtml.append("<img src=\"").append(qrUrl).append(
-                            "\" alt=\"UPI QR Code\" style=\"border: 1px solid #ccc; border-radius: 8px; padding: 10px; background: white; width: 150px; height: 150px;\" /><br/>");
-                    bodyHtml.append(
-                            "<p style=\"font-size: 12px; color: #777; margin-top: 10px;\">Click the button on mobile, or scan the QR code from any UPI app</p>");
-                    bodyHtml.append("</div>");
-                } catch (Exception e) {
-                    System.err.println("Failed to encode UPI link: " + e.getMessage());
-                }
+                bodyHtml.append("<div style=\"text-align: center; margin: 30px 0;\">");
+                bodyHtml.append("<a href=\"").append(upiUri).append(
+                        "\" style=\"background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;\">Pay &#8377;")
+                        .append(String.format("%.0f", bill.getGrandTotal())).append(" instantly via UPI</a><br/>");
+                bodyHtml.append("<img src=\"").append(qrUrl).append(
+                        "\" alt=\"UPI QR Code\" style=\"border: 1px solid #ccc; border-radius: 8px; padding: 10px; background: white; width: 150px; height: 150px;\" /><br/>");
+                bodyHtml.append(
+                        "<p style=\"font-size: 12px; color: #777; margin-top: 10px;\">Click the button on mobile, or scan the QR code from any UPI app</p>");
+                bodyHtml.append("</div>");
+            } catch (Exception e) {
+                System.err.println("Failed to encode UPI link: " + e.getMessage());
             }
 
             bodyHtml.append("<p>Thank you for your business!</p>");
@@ -1044,8 +1050,8 @@ public class BillView extends VBox {
 
     private void showEmailConfigDialog() {
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("⚙️ Email Configuration");
-        dialog.setHeaderText("Configure Gmail SMTP for auto-sending bills");
+        dialog.setTitle("⚙️ Payment & Email Configuration");
+        dialog.setHeaderText("Configure your UPI ID and Email settings for fully automated invoicing");
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -1076,7 +1082,7 @@ public class BillView extends VBox {
                         "2. Enable 2-Step Verification\n" +
                         "3. Search 'App passwords' → Create one for 'Mail'\n" +
                         "4. Copy the 16-character password here\n\n" +
-                        "💳 Add your UPI ID to automatically include a 'Pay Now' button in emails.");
+                        "💳 *PAYMENT SETUP:* Enter your UPI ID above to automatically include CLICKABLE payment links in both WhatsApp messages and Emails!");
         helpLabel.setWrapText(true);
         helpLabel.setStyle("-fx-text-fill: #666; -fx-font-size: 11px;");
         helpLabel.setMaxWidth(400);
