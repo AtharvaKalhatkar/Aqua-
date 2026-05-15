@@ -58,6 +58,8 @@ const Bills = {
 
       if (allCustIds.length === 0) {
         document.getElementById('billCount').textContent = '0';
+        const statEl = document.getElementById('statIncome');
+        if (statEl) statEl.textContent = '₹0';
         div.innerHTML = '<div class="empty-state"><i data-lucide="file-text" class="empty-icon-vector"></i><div class="empty-text">No ledger activity recorded for this billing cycle.</div></div>';
         App.refreshIcons();
         return;

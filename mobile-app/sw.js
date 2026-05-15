@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqua-v19';
+const CACHE_NAME = 'aqua-v20';
 const ASSETS = [
   './',
   './index.html',
