@@ -229,7 +229,16 @@
     });
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(() => console.log('SW registered')).catch(e => console.log('SW failed:', e));
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let r of registrations) {
+          r.unregister().then(() => {
+            caches.keys().then(names => {
+              for (let name of names) caches.delete(name);
+            });
+            console.log('SW & Caches cleared globally.');
+          });
+        }
+      });
     }
   </script>
 </body>
