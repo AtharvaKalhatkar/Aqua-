@@ -81,12 +81,15 @@ const Deliveries = {
       const name = d.customers?.name || 'Customer #' + d.customer_id;
       const color = App.getAvatarColor(name);
       totalJ += d.jar_qty; totalB += d.bottle_qty;
+      const entryTime = d.created_at ? new Date(d.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '';
+      const timeHtml = entryTime ? `&nbsp;·&nbsp; <i data-lucide="clock" class="icon-xxs"></i> ${entryTime}` : '';
+      
       html += `<div class="list-item" onclick="Deliveries.showDetail(${d.id})">
         <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
         <div class="list-content">
           <div class="list-name">${name}</div>
           <div class="list-detail">
-            <i data-lucide="droplets" class="icon-xxs"></i> ${d.jar_qty} Jars &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${d.bottle_qty} Bottles
+            <i data-lucide="droplets" class="icon-xxs"></i> ${d.jar_qty} Jars &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${d.bottle_qty} Bottles${timeHtml}
           </div>
         </div>
         <div class="list-right">
@@ -158,11 +161,11 @@ const Deliveries = {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Jars Dispatched</label>
-          <input class="form-input" type="number" id="addDelJars" value="1" min="0" inputmode="numeric">
+          <input class="form-input" type="number" id="addDelJars" placeholder="0" min="0" inputmode="numeric">
         </div>
         <div class="form-group">
           <label class="form-label">Bottles Dispatched</label>
-          <input class="form-input" type="number" id="addDelBottles" value="0" min="0" inputmode="numeric">
+          <input class="form-input" type="number" id="addDelBottles" placeholder="0" min="0" inputmode="numeric">
         </div>
       </div>
       <button class="btn btn-primary" onclick="Deliveries.save()">
@@ -200,8 +203,11 @@ const Deliveries = {
   async save() {
     const customerId = parseInt(document.getElementById('addDelCustomer').value);
     const date = document.getElementById('addDelDate').value;
-    const jars = parseInt(document.getElementById('addDelJars').value) || 0;
-    const bottles = parseInt(document.getElementById('addDelBottles').value) || 0;
+    
+    const jarsVal = document.getElementById('addDelJars').value.trim();
+    const bottlesVal = document.getElementById('addDelBottles').value.trim();
+    const jars = jarsVal === "" ? 0 : (parseInt(jarsVal) || 0);
+    const bottles = bottlesVal === "" ? 0 : (parseInt(bottlesVal) || 0);
 
     if (!customerId || !date) { App.toast('Specify customer and date.', 'warning'); return; }
     if (jars === 0 && bottles === 0) { App.toast('Quantity must be greater than 0.', 'warning'); return; }
