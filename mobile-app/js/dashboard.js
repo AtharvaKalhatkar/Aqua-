@@ -114,16 +114,16 @@ const Dashboard = {
           <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
           <div class="list-content">
             <div class="list-name">${name}</div>
-            <div class="list-detail" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
-              <span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 229, 255, 0.05); padding: 2px 8px; border-radius: 6px; color: var(--accent-cyan); font-weight: 700; font-size: 10px; white-space: nowrap;">
-                <i data-lucide="droplets" style="width:10px; height:10px; stroke-width:2.5px;"></i> ${d.jar_qty} ${App.t('jars')}
+            <div class="list-detail">
+              <span class="badge badge-cyan">
+                <i data-lucide="droplets"></i> ${d.jar_qty} ${App.t('jars')}
               </span>
-              <span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(167, 139, 250, 0.05); padding: 2px 8px; border-radius: 6px; color: var(--accent-violet); font-weight: 700; font-size: 10px; white-space: nowrap;">
-                <i data-lucide="glass-water" style="width:10px; height:10px; stroke-width:2.5px;"></i> ${d.bottle_qty} ${App.t('bottles')}
+              <span class="badge badge-violet">
+                <i data-lucide="glass-water"></i> ${d.bottle_qty} ${App.t('bottles')}
               </span>
               ${entryTime ? `
-              <span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.04); padding: 2px 8px; border-radius: 6px; color: var(--text-muted); font-weight: 700; font-size: 10px; white-space: nowrap;">
-                <i data-lucide="clock" style="width:10px; height:10px; stroke-width:2.5px;"></i> ${entryTime}
+              <span class="badge badge-muted">
+                <i data-lucide="clock"></i> ${entryTime}
               </span>` : ''}
             </div>
           </div>
