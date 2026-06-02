@@ -81,15 +81,23 @@ const Deliveries = {
       const name = d.customers?.name || 'Customer #' + d.customer_id;
       const color = App.getAvatarColor(name);
       totalJ += d.jar_qty; totalB += d.bottle_qty;
-      const entryTime = d.created_at ? new Date(d.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '';
-      const timeHtml = entryTime ? `&nbsp;·&nbsp; <i data-lucide="clock" class="icon-xxs"></i> ${entryTime}` : '';
+      const entryTime = d.created_at ? new Date(d.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }).toLowerCase() : '';
       
       html += `<div class="list-item" onclick="Deliveries.showDetail(${d.id})">
         <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
         <div class="list-content">
           <div class="list-name">${name}</div>
-          <div class="list-detail">
-            <i data-lucide="droplets" class="icon-xxs"></i> ${d.jar_qty} Jars &nbsp;·&nbsp; <i data-lucide="glass-water" class="icon-xxs"></i> ${d.bottle_qty} Bottles${timeHtml}
+          <div class="list-detail" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 229, 255, 0.05); padding: 2px 8px; border-radius: 6px; color: var(--accent-cyan); font-weight: 700; font-size: 10px; white-space: nowrap;">
+              <i data-lucide="droplets" style="width:10px; height:10px; stroke-width:2.5px;"></i> ${d.jar_qty} Jars
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(167, 139, 250, 0.05); padding: 2px 8px; border-radius: 6px; color: var(--accent-violet); font-weight: 700; font-size: 10px; white-space: nowrap;">
+              <i data-lucide="glass-water" style="width:10px; height:10px; stroke-width:2.5px;"></i> ${d.bottle_qty} Bottles
+            </span>
+            ${entryTime ? `
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.04); padding: 2px 8px; border-radius: 6px; color: var(--text-muted); font-weight: 700; font-size: 10px; white-space: nowrap;">
+              <i data-lucide="clock" style="width:10px; height:10px; stroke-width:2.5px;"></i> ${entryTime}
+            </span>` : ''}
           </div>
         </div>
         <div class="list-right">
