@@ -377,7 +377,7 @@ const Reports = {
          const ySelect = document.getElementById('reportYear');
          const m = (mSelect && mSelect.value) ? parseInt(mSelect.value) : new Date().getMonth() + 1;
          const y = (ySelect && ySelect.value) ? parseInt(ySelect.value) : new Date().getFullYear();
-         localStorage.removeItem(\`report_grid_\${y}_\${m}\`);
+         localStorage.removeItem(`report_grid_${y}_${m}`);
          
          this.load(); 
      } catch (e) {
