@@ -393,8 +393,7 @@ const Reports = {
       const { data, error } = await supabase
         .from('deliveries')
         .select('*, customers(name, route)')
-        .gte('delivery_date', date + 'T00:00:00')
-        .lte('delivery_date', date + 'T23:59:59')
+        .eq('delivery_date', date)
         .order('delivery_date', { ascending: true });
       if (error) throw error;
       if (!data || data.length === 0) {
