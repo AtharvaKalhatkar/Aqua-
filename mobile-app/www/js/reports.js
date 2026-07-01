@@ -374,6 +374,11 @@ const Reports = {
                App.toast('Saved offline - sync when online', 'warning');
            } else {
                App.toast('Saved successfully!');
+               const mSelect = document.getElementById('reportMonth');
+               const ySelect = document.getElementById('reportYear');
+               const m = (mSelect && mSelect.value) ? parseInt(mSelect.value) : new Date().getMonth() + 1;
+               const y = (ySelect && ySelect.value) ? parseInt(ySelect.value) : new Date().getFullYear();
+               localStorage.removeItem(`report_grid_${y}_${m}`);
                this.load();
            }
       } catch (e) {
