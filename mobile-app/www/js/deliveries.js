@@ -164,7 +164,7 @@ const Deliveries = {
       </div>
       <div class="form-group">
         <label class="form-label">Date</label>
-        <input class="form-input" type="date" id="addDelDate" value="${App.todayStr()}">
+        <input class="form-input" type="date" id="addDelDate" value="${App.todayStr()}" onchange="Deliveries.checkExistingEntry()">
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -176,7 +176,8 @@ const Deliveries = {
           <input class="form-input" type="number" id="addDelBottles" placeholder="0" min="0" inputmode="numeric">
         </div>
       </div>
-      <button class="btn btn-primary" onclick="Deliveries.save()">
+      <input type="hidden" id="addDelId">
+      <button class="btn btn-primary" id="saveDelBtn" onclick="Deliveries.save()">
         <i data-lucide="check-circle"></i> Save Delivery
       </button>
       <button class="btn btn-outline mt-8" onclick="App.closeModal()">Cancel</button>
@@ -206,11 +207,35 @@ const Deliveries = {
     document.getElementById('addDelCustomer').value = id;
     document.getElementById('custSearchInput').value = name;
     document.getElementById('custSuggestions').classList.remove('show');
+    this.checkExistingEntry();
+  },
+
+  async checkExistingEntry() {
+    const cid = document.getElementById('addDelCustomer').value;
+    const date = document.getElementById('addDelDate').value;
+    if (!cid || !date) return;
+    
+    try {
+      const { data } = await supabase.from('deliveries').select('id, jar_qty, bottle_qty').eq('customer_id', cid).eq('delivery_date', date).single();
+      if (data) {
+        document.getElementById('addDelJars').value = data.jar_qty;
+        document.getElementById('addDelBottles').value = data.bottle_qty;
+        document.getElementById('addDelId').value = data.id;
+        document.getElementById('saveDelBtn').innerHTML = '<i data-lucide="refresh-cw"></i> Update Existing Entry';
+      } else {
+        document.getElementById('addDelJars').value = '';
+        document.getElementById('addDelBottles').value = '';
+        document.getElementById('addDelId').value = '';
+        document.getElementById('saveDelBtn').innerHTML = '<i data-lucide="check-circle"></i> Save Delivery';
+      }
+      if (window.lucide) window.lucide.createIcons();
+    } catch(e) {}
   },
 
   async save() {
     const customerId = parseInt(document.getElementById('addDelCustomer').value);
     const date = document.getElementById('addDelDate').value;
+    const existingId = document.getElementById('addDelId').value;
     
     const jarsVal = document.getElementById('addDelJars').value.trim();
     const bottlesVal = document.getElementById('addDelBottles').value.trim();
@@ -221,18 +246,24 @@ const Deliveries = {
     if (jars === 0 && bottles === 0) { App.toast('Quantity must be greater than 0.', 'warning'); return; }
 
     try {
-      const res = await OfflineVault.safeInsert('deliveries', {
-        id: Math.floor(Date.now() / 1000),
-        customer_id: customerId,
-        delivery_date: date,
-        jar_qty: jars,
-        bottle_qty: bottles,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+      let res;
+      if (existingId) {
+        res = await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles }, { id: parseInt(existingId) });
+      } else {
+        res = await OfflineVault.safeInsert('deliveries', {
+          id: Math.floor(Date.now() / 1000),
+          customer_id: customerId,
+          delivery_date: date,
+          jar_qty: jars,
+          bottle_qty: bottles,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
+      
       if (res.error) throw res.error;
       App.closeModal();
-      App.toast('Log entry successfully recorded.');
+      App.toast(existingId ? 'Log entry updated.' : 'Log entry successfully recorded.');
       this.selectedDate = date;
       this.load();
     } catch (e) {
