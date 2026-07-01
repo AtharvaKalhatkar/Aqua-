@@ -220,9 +220,7 @@ const Customers = {
     const name = document.getElementById('custName').value.trim();
     if (!name) { App.toast('Name is required', 'warning'); return; }
     try {
-      const generatedId = Math.floor(Date.now() / 1000);
       const res = await OfflineVault.safeInsert('customers', {
-        id: generatedId,
         name,
         address: document.getElementById('custAddress').value.trim(),
         mobile: document.getElementById('custMobile').value.trim(),
