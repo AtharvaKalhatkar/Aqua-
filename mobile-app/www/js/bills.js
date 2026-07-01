@@ -755,40 +755,44 @@ const Bills = {
       });
       
       window.executeMobileBulkBilling = async function() {
-          App.closeModal();
-          App.toast('Processing ' + unbilledIds.length + ' bills...', 'info');
-          
-          let successCount = 0;
-          for (let cid of unbilledIds) {
-              const qty = delMap[cid];
-              const jarRate = parseFloat(document.getElementById(`jar-rate-${cid}`).value) || 0;
-              const botRate = parseFloat(document.getElementById(`bot-rate-${cid}`).value) || 0;
-              
-              const jA = qty.jars * jarRate;
-              const bA = qty.bottles * botRate;
-              const total = jA + bA;
-              
-              const res = await OfflineVault.safeInsert('bills', {
-                id: Math.floor(Date.now() / 1000) + successCount,
-                customer_id: cid,
-                bill_month: curMonth,
-                bill_year: curYear,
-                total_jars: qty.jars,
-                total_bottles: qty.bottles,
-                jar_rate: jarRate,
-                bottle_rate: botRate,
-                jar_amount: jA,
-                bottle_amount: bA,
-                grand_total: total,
-                status: 'PENDING',
-                generated_at: new Date().toISOString()
+          App.confirm('Generate ' + unbilledIds.length + ' invoices? Please ensure all rates are entered correctly.', () => {
+              App.confirm('WARNING: Final Confirmation. Are you ABSOLUTELY sure? This will lock in the rates and instantly generate the bills.', async () => {
+                  App.closeModal();
+                  App.toast('Processing ' + unbilledIds.length + ' bills...', 'info');
+                  
+                  let successCount = 0;
+                  for (let cid of unbilledIds) {
+                      const qty = delMap[cid];
+                      const jarRate = parseFloat(document.getElementById(`jar-rate-${cid}`).value) || 0;
+                      const botRate = parseFloat(document.getElementById(`bot-rate-${cid}`).value) || 0;
+                      
+                      const jA = qty.jars * jarRate;
+                      const bA = qty.bottles * botRate;
+                      const total = jA + bA;
+                      
+                      const res = await OfflineVault.safeInsert('bills', {
+                        id: Math.floor(Date.now() / 1000) + successCount,
+                        customer_id: cid,
+                        bill_month: curMonth,
+                        bill_year: curYear,
+                        total_jars: qty.jars,
+                        total_bottles: qty.bottles,
+                        jar_rate: jarRate,
+                        bottle_rate: botRate,
+                        jar_amount: jA,
+                        bottle_amount: bA,
+                        grand_total: total,
+                        status: 'PENDING',
+                        generated_at: new Date().toISOString()
+                      });
+                      
+                      if (!res.error) successCount++;
+                  }
+                  
+                  App.toast('Bulk generation complete: ' + successCount + ' generated.', 'success');
+                  Bills.load();
               });
-              
-              if (!res.error) successCount++;
-          }
-          
-          App.toast('Bulk generation complete: ' + successCount + ' generated.', 'success');
-          Bills.load();
+          });
       };
       
       const listHtml = unbilledIds.map(cid => {
