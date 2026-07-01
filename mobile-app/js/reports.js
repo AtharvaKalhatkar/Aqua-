@@ -309,9 +309,8 @@ const Reports = {
 
     } catch (e) {
       console.error(e);
-      App.alert("Matrix Sync Error: " + e.message, "error");
       if (!hydrated) {
-        content.innerHTML = `<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Aggregation failure: ${e.message}</div></div>`;
+        content.innerHTML = `<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Could not load report: ${e.message}</div><button class="btn btn-outline mt-16" onclick="Reports.load()">Retry</button></div>`;
         App.refreshIcons();
       } else {
         App.toast('📶 Loaded offline report matrix.', 'warning');
@@ -357,8 +356,8 @@ const Reports = {
      }
      
      try {
-         if (existingId) {
-             await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles }, { id: parseInt(existingId) });
+          if (existingId) {
+              await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles, updated_at: new Date().toISOString() }, { id: parseInt(existingId) });
          } else {
               await OfflineVault.safeInsert('deliveries', {
                  customer_id: cid,
@@ -369,17 +368,11 @@ const Reports = {
                 updated_at: new Date().toISOString()
              });
          }
-         App.closeModal();
-         App.toast('Saved successfully!');
-         
-         // Remove cache to force fresh render
-         const mSelect = document.getElementById('reportMonth');
-         const ySelect = document.getElementById('reportYear');
-         const m = (mSelect && mSelect.value) ? parseInt(mSelect.value) : new Date().getMonth() + 1;
-         const y = (ySelect && ySelect.value) ? parseInt(ySelect.value) : new Date().getFullYear();
-         localStorage.removeItem(`report_grid_${y}_${m}`);
-         
-         this.load(); 
+          App.closeModal();
+          App.toast('Saved successfully!');
+          
+          // Trigger matrix reload — cache auto-updates on success, preserved on failure
+          this.load();
      } catch (e) {
          App.toast('Failed: ' + e.message, 'warning');
      }
