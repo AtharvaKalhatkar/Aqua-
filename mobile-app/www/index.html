@@ -146,6 +146,9 @@
         <button class="segment-btn" id="segReports" onclick="App.switchVaultSubTab('reports')" data-t="reports">
           <i data-lucide="layout-grid"></i> Reports
         </button>
+        <button class="segment-btn" id="segHistory" onclick="App.switchVaultSubTab('history')">
+          <i data-lucide="clock"></i> History
+        </button>
         <button class="segment-btn" id="segBackup" onclick="App.switchVaultSubTab('backup')">
           <i data-lucide="hard-drive-download"></i> Backup
         </button>
@@ -179,6 +182,14 @@
       <!-- Sub-Section: Backup & Restore -->
       <div id="vaultBackupSection" style="display:none;">
         <div id="backupContent"></div>
+      </div>
+
+      <!-- Sub-Section: History -->
+      <div id="vaultHistorySection" style="display:none;">
+        <div class="date-filter-strip">
+          <input type="date" class="form-select-pro" id="historyDate" onchange="Reports.loadHistory()">
+        </div>
+        <div id="historyContent"><div class="spinner"></div></div>
       </div>
     </div>
 

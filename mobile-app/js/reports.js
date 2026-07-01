@@ -355,26 +355,76 @@ const Reports = {
          return;
      }
      
-     try {
-          if (existingId) {
-              await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles, updated_at: new Date().toISOString() }, { id: parseInt(existingId) });
-         } else {
-              await OfflineVault.safeInsert('deliveries', {
-                 customer_id: cid,
-                delivery_date: date,
-                jar_qty: jars,
-                bottle_qty: bottles,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-             });
-         }
-          App.closeModal();
-          App.toast('Saved successfully!');
-          
-          // Trigger matrix reload — cache auto-updates on success, preserved on failure
-          this.load();
-     } catch (e) {
-         App.toast('Failed: ' + e.message, 'warning');
-     }
+      try {
+           let result;
+           if (existingId) {
+               result = await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles, updated_at: new Date().toISOString() }, { id: parseInt(existingId) });
+          } else {
+               result = await OfflineVault.safeInsert('deliveries', {
+                  customer_id: cid,
+                 delivery_date: date,
+                 jar_qty: jars,
+                 bottle_qty: bottles,
+                 created_at: new Date().toISOString(),
+                 updated_at: new Date().toISOString()
+              });
+          }
+           App.closeModal();
+           if (result && result.offline) {
+               App.toast('Saved offline - sync when online', 'warning');
+           } else {
+               App.toast('Saved successfully!');
+               this.load();
+           }
+      } catch (e) {
+          App.toast('Failed: ' + e.message, 'warning');
+      }
+   },
+
+  /* ===== History Tab ===== */
+  async loadHistory() {
+    const content = document.getElementById('historyContent');
+    if (!content) return;
+    const dateInput = document.getElementById('historyDate');
+    let date = dateInput && dateInput.value ? dateInput.value : App.todayStr();
+    if (dateInput && !dateInput.value) dateInput.value = date;
+    try {
+      content.innerHTML = '<div class="spinner"></div>';
+      const { data, error } = await supabase
+        .from('deliveries')
+        .select('*, customers(name, route)')
+        .gte('delivery_date', date + 'T00:00:00')
+        .lte('delivery_date', date + 'T23:59:59')
+        .order('delivery_date', { ascending: true });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        content.innerHTML = '<div class="empty-state"><i data-lucide="calendar" class="empty-icon-vector"></i><div class="empty-text">No entries for this date.</div></div>';
+        App.refreshIcons();
+        return;
+      }
+      let html = '<div style="font-size:12px;font-weight:800;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i data-lucide="list" style="width:14px;height:14px;"></i> ' + data.length + ' entries</div>';
+      data.forEach(d => {
+        const name = d.customers?.name || 'Customer #' + d.customer_id;
+        html += '<div style="background:var(--bg-slate);border:1px solid var(--border-slate);border-radius:10px;padding:14px;margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-weight:700;color:var(--text-primary)">' + App.escapeAttr(name) + '</div><div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Jars: <strong style="color:var(--accent-cyan)">' + d.jar_qty + '</strong> | Bottles: <strong style="color:var(--accent-violet)">' + d.bottle_qty + '</strong> | Route: ' + App.escapeAttr(d.customers?.route || '-') + '</div></div><button class="btn btn-outline" style="padding:6px 12px;font-size:11px;border-color:rgba(239,68,68,0.3);color:rgb(239,68,68);flex-shrink:0;" onclick="Reports.deleteHistoryEntry(' + d.id + ')"><i data-lucide="trash-2" style="width:13px;height:13px;"></i></button></div></div>';
+      });
+      content.innerHTML = html;
+      App.refreshIcons();
+    } catch (e) {
+      console.error(e);
+      content.innerHTML = '<div class="empty-state"><i data-lucide="alert-octagon" class="empty-icon-vector"></i><div class="empty-text">Error: ' + e.message + '</div></div>';
+      App.refreshIcons();
+    }
+  },
+
+  async deleteHistoryEntry(id) {
+    App.confirm('Delete this entry permanently?', async () => {
+      try {
+        await OfflineVault.safeWrite('DELETE', 'deliveries', null, { id: parseInt(id) });
+        App.toast('Deleted!');
+        this.loadHistory();
+      } catch (e) {
+        App.toast('Failed: ' + e.message, 'warning');
+      }
+    });
   }
 };

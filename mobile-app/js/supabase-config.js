@@ -158,7 +158,13 @@ const OfflineVault = {
       if (App.currentPage === 'Dashboard' && typeof Dashboard !== 'undefined') Dashboard.load();
       else if (App.currentPage === 'Deliveries' && typeof Deliveries !== 'undefined') Deliveries.load();
       else if (App.currentPage === 'Customers' && typeof Customers !== 'undefined') Customers.load();
-      else if (App.currentPage === 'Vault' && typeof Bills !== 'undefined') Bills.load();
+      else if (App.currentPage === 'Vault') {
+        const isRep = document.getElementById('segReports') && document.getElementById('segReports').classList.contains('active');
+        const isHist = document.getElementById('segHistory') && document.getElementById('segHistory').classList.contains('active');
+        if (isRep && typeof Reports !== 'undefined') Reports.load();
+        else if (isHist && typeof Reports !== 'undefined') Reports.loadHistory();
+        else if (typeof Bills !== 'undefined') Bills.load();
+      }
     }
   }
 };
