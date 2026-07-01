@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#08080a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Bhairavnath Cool Aqua — Water Delivery Management App">
+  <title>Bhairavnath Aqua</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=56">
+  <!-- Lucide Vector Icons Engine -->
+  <script src="js/vendor/lucide.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <img src="icons/logo.png" class="header-logo" alt="Logo">
+        <div>
+          <div class="header-title">Bhairavnath Aqua</div>
+          <div class="header-subtitle" id="syncStatus">Connecting...</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="header-sync" id="btnLang" onclick="if(typeof App !== 'undefined' && App.toggleLanguage) App.toggleLanguage()" aria-label="Toggle Language" style="font-size: 11px; font-weight: 800; padding: 0 10px; width: auto; min-width: 60px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: var(--radius-sm); border: 1px solid var(--border-slate); background: var(--bg-slate); color: var(--accent-cyan); height: 38px;">
+          <i data-lucide="languages" style="width:13px; height:13px;"></i>
+          <span id="langText">मराठी</span>
+        </button>
+        <button class="header-sync" id="btnTheme" onclick="if(typeof App !== 'undefined' && App.toggleTheme) App.toggleTheme()" aria-label="Toggle Theme">
+          <i data-lucide="sun"></i>
+        </button>
+        <button class="header-sync" id="btnSync" onclick="if(typeof App !== 'undefined' && App.syncAll) App.syncAll()" aria-label="Sync Data">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== DASHBOARD PAGE ===== -->
+    <div class="page active" id="pageDashboard">
+      <p class="page-date-badge" id="dashDate"></p>
+      
+
+
+      <!-- ⚡ Quick Launchpad (Absolute Beginner Ease) -->
+      <div class="quick-launchpad">
+        <button class="launch-btn primary" onclick="App.onFabClick()">
+          <div class="launch-icon"><i data-lucide="zap"></i></div>
+          <div class="launch-text">
+            <span class="launch-title" data-t="logDeliveryBtn">Log Delivery</span>
+            <span class="launch-sub" data-t="logJarDropoff">Log jar drop-off</span>
+          </div>
+        </button>
+        <button class="launch-btn secondary" onclick="App.navigate('Customers')">
+          <div class="launch-icon"><i data-lucide="users"></i></div>
+          <div class="launch-text">
+            <span class="launch-title" data-t="viewClientsBtn">View Clients</span>
+            <span class="launch-sub" data-t="addressesPhones">Addresses & Phones</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- 📊 Secondary Tech Metrics -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-val" id="statDeliveries">-</div>
+          <div class="metric-lbl" data-t="loggedToday"><i data-lucide="truck" class="icon-xxs"></i> Logged Today</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="statPending">-</div>
+          <div class="metric-lbl" data-t="unpaidBills"><i data-lucide="clock" class="icon-xxs"></i> Unpaid Bills</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="statCustomers">-</div>
+          <div class="metric-lbl" data-t="totalClients"><i data-lucide="user-check" class="icon-xxs"></i> Total Clients</div>
+        </div>
+      </div>
+
+      <!-- Interactive Listings -->
+      <div class="section-head-pro">
+        <h3 data-t="todaysDeliveries">Today's Deliveries</h3>
+        <span class="head-badge" id="todayCount">0</span>
+      </div>
+      <div id="todayDeliveries"><div class="spinner"></div></div>
+
+      <div class="section-head-pro mt-20">
+        <h3 data-t="pendingInvoices">Pending Invoices</h3>
+      </div>
+      <div id="pendingBillsList"><div class="spinner"></div></div>
+    </div>
+
+    <!-- ===== DELIVERIES PAGE ===== -->
+    <div class="page" id="pageDeliveries">
+      <div class="page-header-slate">
+        <h1 class="page-title">Deliveries</h1>
+        <p class="page-subtitle">Complete interactive logistics tracker</p>
+      </div>
+      <div class="filter-chips" id="deliveryDateChips"></div>
+      <div class="section-head-pro">
+        <h3>Delivery Record</h3>
+        <span class="head-badge" id="deliveryCount">0</span>
+      </div>
+      <div id="deliveryList"><div class="spinner"></div></div>
+    </div>
+
+    <!-- ===== CUSTOMERS PAGE ===== -->
+    <div class="page" id="pageCustomers">
+      <div class="page-header-slate">
+        <h1 class="page-title" data-t="clients">Customers</h1>
+        <p class="page-subtitle">Full clients directory & route maps</p>
+      </div>
+      <div class="search-bar-pro">
+        <i data-lucide="search" class="search-icon-vector"></i>
+        <input type="text" id="customerSearch" placeholder="Find customer name, route or phone..." oninput="Customers.search(this.value)">
+      </div>
+      <div class="filter-chips" id="routeChips"></div>
+      <div id="customerList"><div class="spinner"></div></div>
+    </div>
+
+    <!-- ===== VAULT (FINANCE) PAGE ===== -->
+    <div class="page" id="pageVault">
+      <div class="page-header-slate">
+        <h1 class="page-title" data-t="vault">Finance Vault</h1>
+        <p class="page-subtitle">Monthly ledger & system grid analysis</p>
+      </div>
+      <!-- 👑 Executive Hero Card -->
+      <div class="executive-hero" style="margin: 0 0 20px 0;">
+        <div class="hero-overlay"></div>
+        <div class="hero-meta" data-t="sales">Monthly Business Sales</div>
+        <h1 class="hero-value" id="statIncome">₹0</h1>
+        <div class="hero-footer">
+          <div class="hero-pill">
+            <i data-lucide="calendar" class="icon-xs"></i> Period Ledger
+          </div>
+        </div>
+      </div>
+      <!-- Slate Segmented Controller -->
+      <div class="segmented-control">
+        <button class="segment-btn active" id="segBills" onclick="App.switchVaultSubTab('bills')" data-t="invoices">
+          <i data-lucide="file-text"></i> Invoices
+        </button>
+        <button class="segment-btn" id="segReports" onclick="App.switchVaultSubTab('reports')" data-t="reports">
+          <i data-lucide="layout-grid"></i> Reports
+        </button>
+        <button class="segment-btn" id="segHistory" onclick="App.switchVaultSubTab('history')">
+          <i data-lucide="clock"></i> History
+        </button>
+        <button class="segment-btn" id="segBackup" onclick="App.switchVaultSubTab('backup')">
+          <i data-lucide="hard-drive-download"></i> Backup
+        </button>
+      </div>
+
+      <!-- Sub-Section: Bills -->
+      <div id="vaultBillsSection">
+        <div class="date-filter-strip">
+          <select class="form-select-pro" id="billMonth" onchange="Bills.load()"></select>
+          <select class="form-select-pro" id="billYear" onchange="Bills.load()"></select>
+        </div>
+        <div class="section-head-pro">
+          <h3>Invoices Register</h3>
+          <span class="head-badge" id="billCount">0</span>
+        </div>
+        <button class="btn btn-primary" onclick="Bills.showBulkBillingModal()" style="width:100%; margin-bottom:15px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border:none;" data-t="bulkBillingBtn">
+          <i data-lucide="zap"></i> Auto Bulk Billing (Calculations)
+        </button>
+        <div id="billList"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Sub-Section: Reports -->
+      <div id="vaultReportsSection" style="display:none;">
+        <div class="date-filter-strip">
+          <select class="form-select-pro" id="reportMonth" onchange="Reports.load()"></select>
+          <select class="form-select-pro" id="reportYear" onchange="Reports.load()"></select>
+        </div>
+        <div id="reportContent"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Sub-Section: Backup & Restore -->
+      <div id="vaultBackupSection" style="display:none;">
+        <div id="backupContent"></div>
+      </div>
+
+      <!-- Sub-Section: History -->
+      <div id="vaultHistorySection" style="display:none;">
+        <div class="date-filter-strip">
+          <input type="date" class="form-select-pro" id="historyDate" onchange="Reports.loadHistory()">
+        </div>
+        <div id="historyContent"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 🛸 Premium 4-Dock Bottom Navigation -->
+  <nav class="dock-nav">
+    <button class="dock-item active" onclick="App.navigate('Dashboard')">
+      <i data-lucide="layout-dashboard" class="dock-icon"></i>
+      <span class="dock-lbl" data-t="home">Home</span>
+    </button>
+    <button class="dock-item" onclick="App.navigate('Deliveries')">
+      <i data-lucide="truck" class="dock-icon"></i>
+      <span class="dock-lbl" data-t="logs">Logs</span>
+    </button>
+    <button class="dock-item" onclick="App.navigate('Customers')">
+      <i data-lucide="users" class="dock-icon"></i>
+      <span class="dock-lbl" data-t="clients">Clients</span>
+    </button>
+    <button class="dock-item" onclick="App.navigate('Vault')">
+      <i data-lucide="lock" class="dock-icon"></i>
+      <span class="dock-lbl" data-t="vault">Vault</span>
+    </button>
+  </nav>
+
+  <!-- Compact Rounded Action FAB -->
+  <button class="fab-slate" id="fabAdd" onclick="App.onFabClick()" aria-label="Quick Add">
+    <i data-lucide="plus"></i>
+  </button>
+
+  <!-- Premium Feedback Toast -->
+  <div class="toast-pro" id="toast"></div>
+
+  <!-- Sleek Modal (BottomSheet) -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal-content-pro" id="modalContent">
+      <div class="modal-drag-handle"></div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Supabase JS SDK -->
+  <script src="js/vendor/supabase.min.js"></script>
+  <script src="js/supabase-config.js?v=56"></script>
+  <script src="js/app.js?v=56"></script>
+  <script src="js/dashboard.js?v=56"></script>
+  <script src="js/deliveries.js?v=56"></script>
+  <script src="js/customers.js?v=56"></script>
+  <script src="js/bills.js?v=56"></script>
+  <script src="js/reports.js?v=56"></script>
+  <script src="js/backup.js?v=56"></script>
+  
+  <script>
+    // Register service worker & fire Lucide initial rendering pass!
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let r of registrations) {
+          r.unregister().then(() => {
+            caches.keys().then(names => {
+              for (let name of names) caches.delete(name);
+            });
+            console.log('SW & Caches cleared globally.');
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
