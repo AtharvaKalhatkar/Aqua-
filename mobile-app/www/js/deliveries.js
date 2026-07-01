@@ -216,8 +216,9 @@ const Deliveries = {
     if (!cid || !date) return;
     
     try {
-      const { data } = await supabase.from('deliveries').select('id, jar_qty, bottle_qty').eq('customer_id', cid).eq('delivery_date', date).single();
-      if (data) {
+      const { data, error } = await supabase.from('deliveries').select('id, jar_qty, bottle_qty').eq('customer_id', cid).eq('delivery_date', date).maybeSingle();
+      
+      if (data && !error) {
         document.getElementById('addDelJars').value = data.jar_qty;
         document.getElementById('addDelBottles').value = data.bottle_qty;
         document.getElementById('addDelId').value = data.id;
@@ -229,7 +230,9 @@ const Deliveries = {
         document.getElementById('saveDelBtn').innerHTML = '<i data-lucide="check-circle"></i> Save Delivery';
       }
       if (window.lucide) window.lucide.createIcons();
-    } catch(e) {}
+    } catch(e) {
+      console.error(e);
+    }
   },
 
   async save() {
