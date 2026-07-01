@@ -390,10 +390,14 @@ const Reports = {
     if (dateInput && !dateInput.value) dateInput.value = date;
     try {
       content.innerHTML = '<div class="spinner"></div>';
+      const nextD = new Date(date + 'T12:00:00');
+      nextD.setDate(nextD.getDate() + 1);
+      const nextDate = nextD.toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('deliveries')
         .select('*, customers(name, route)')
-        .eq('delivery_date', date)
+        .gte('delivery_date', date)
+        .lt('delivery_date', nextDate)
         .order('delivery_date', { ascending: true });
       if (error) throw error;
       if (!data || data.length === 0) {
