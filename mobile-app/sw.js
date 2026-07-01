@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqua-v50-dormant';
+const CACHE_NAME = 'aqua-v54-killcache';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
