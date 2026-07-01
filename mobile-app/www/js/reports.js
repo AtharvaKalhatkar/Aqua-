@@ -119,6 +119,7 @@ const Reports = {
         customerMap[cid].jars += d.jar_qty;
         customerMap[cid].bottles += d.bottle_qty;
         customerMap[cid].dates.push({
+          id: d.id,
           day: new Date(d.delivery_date).getDate(),
           j: d.jar_qty,
           b: d.bottle_qty
@@ -227,7 +228,7 @@ const Reports = {
         // Map of this customer's days for lookup
         const dMap = {};
         c.dates.forEach(item => {
-          if(!dMap[item.day]) dMap[item.day] = {j:0,b:0};
+          if(!dMap[item.day]) dMap[item.day] = { id: item.id, j:0, b:0 };
           dMap[item.day].j += item.j;
           dMap[item.day].b += item.b;
         });
@@ -236,9 +237,9 @@ const Reports = {
         for(let d = 1; d <= daysInMonth; d++) {
            if (dMap[d]) {
              const val = `${dMap[d].j}/${dMap[d].b}`;
-             html += `<td class="active-cell">${val}</td>`;
+             html += `<td class="active-cell" onclick="Reports.editCell(${c.cid}, '${c.name.replace(/'/g, "\\'")}', ${y}, ${m}, ${d}, ${dMap[d].j}, ${dMap[d].b}, ${dMap[d].id})">${val}</td>`;
            } else {
-             html += `<td style="opacity:0.15">—</td>`;
+             html += `<td style="opacity:0.15" onclick="Reports.editCell(${c.cid}, '${c.name.replace(/'/g, "\\'")}', ${y}, ${m}, ${d}, 0, 0, null)">—</td>`;
            }
         }
         
@@ -316,5 +317,71 @@ const Reports = {
         App.toast('📶 Loaded offline report matrix.', 'warning');
       }
     }
+  },
+  
+  editCell(cid, name, y, m, d, jars, bottles, existingId) {
+     const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+     App.showModal(`
+        <div class="modal-title"><i data-lucide="edit"></i> Quick Edit</div>
+        <div style="background:var(--bg-slate); padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid var(--border-slate);">
+           <div style="font-size:12px; color:var(--text-secondary); margin-bottom:5px;">Customer: <strong style="color:var(--text-primary);">${name}</strong></div>
+           <div style="font-size:12px; color:var(--text-secondary);">Date: <strong style="color:var(--text-primary);">${dateStr}</strong></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" style="color:var(--accent-cyan);">Jars</label>
+            <input type="number" id="gridEditJars" class="form-input" value="${jars}" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:var(--accent-violet);">Bottles</label>
+            <input type="number" id="gridEditBottles" class="form-input" value="${bottles}" min="0">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="Reports.saveCell(${cid}, '${dateStr}', ${existingId || 'null'})">
+           <i data-lucide="save"></i> Save Changes
+        </button>
+        <button class="btn btn-outline mt-8" onclick="App.closeModal()">Cancel</button>
+     `);
+  },
+
+  async saveCell(cid, date, existingId) {
+     const jarsVal = document.getElementById('gridEditJars').value.trim();
+     const bottlesVal = document.getElementById('gridEditBottles').value.trim();
+     const jars = jarsVal === "" ? 0 : (parseInt(jarsVal) || 0);
+     const bottles = bottlesVal === "" ? 0 : (parseInt(bottlesVal) || 0);
+     
+     if (jars === 0 && bottles === 0 && !existingId) {
+         App.closeModal();
+         return;
+     }
+     
+     try {
+         if (existingId) {
+             await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles }, { id: parseInt(existingId) });
+         } else {
+             await OfflineVault.safeInsert('deliveries', {
+                id: Math.floor(Date.now() / 1000),
+                customer_id: cid,
+                delivery_date: date,
+                jar_qty: jars,
+                bottle_qty: bottles,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+             });
+         }
+         App.closeModal();
+         App.toast('Saved successfully!');
+         
+         // Remove cache to force fresh render
+         const mSelect = document.getElementById('reportMonth');
+         const ySelect = document.getElementById('reportYear');
+         const m = (mSelect && mSelect.value) ? parseInt(mSelect.value) : new Date().getMonth() + 1;
+         const y = (ySelect && ySelect.value) ? parseInt(ySelect.value) : new Date().getFullYear();
+         localStorage.removeItem(\`report_grid_\${y}_\${m}\`);
+         
+         this.load(); 
+     } catch (e) {
+         App.toast('Failed: ' + e.message, 'warning');
+     }
   }
 };
