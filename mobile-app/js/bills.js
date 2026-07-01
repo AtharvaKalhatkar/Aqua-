@@ -50,10 +50,25 @@ const Bills = {
       const nextY = month === 12 ? year + 1 : year;
       const endDate = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
       
-      const { data: dels, error: delErr } = await supabase.from('deliveries')
-        .select('*')
-        .gte('delivery_date', startDate)
-        .lt('delivery_date', endDate);
+      // 1. Get all recorded deliveries for this month (Paginated to bypass 1000-row limit)
+      let allDels = [];
+      let page = 0;
+      const pageSize = 1000;
+      let delErr = null;
+      while (true) {
+        const { data: chunk, error } = await supabase.from('deliveries')
+          .select('*')
+          .gte('delivery_date', startDate)
+          .lt('delivery_date', endDate)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        if (error) { delErr = error; break; }
+        if (!chunk || chunk.length === 0) break;
+        allDels.push(...chunk);
+        if (chunk.length < pageSize) break;
+        page++;
+      }
+      const dels = allDels;
       
       // 2. Get generated bills
       const { data: bills, error: billErr } = await supabase.from('bills')
@@ -693,7 +708,20 @@ const Bills = {
       const nextY = curMonth === 12 ? curYear + 1 : curYear;
       const endDate = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
       
-      const { data: dels } = await supabase.from('deliveries').select('*').gte('delivery_date', startDate).lt('delivery_date', endDate);
+      let allDels = [];
+      let page = 0;
+      while (true) {
+        const { data: chunk } = await supabase.from('deliveries')
+          .select('*')
+          .gte('delivery_date', startDate)
+          .lt('delivery_date', endDate)
+          .range(page * 1000, (page + 1) * 1000 - 1);
+        if (!chunk || chunk.length === 0) break;
+        allDels.push(...chunk);
+        if (chunk.length < 1000) break;
+        page++;
+      }
+      const dels = allDels;
       const { data: bills } = await supabase.from('bills').select('*').eq('bill_month', curMonth).eq('bill_year', curYear);
       const { data: custs } = await supabase.from('customers').select('id, name');
       

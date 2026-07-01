@@ -252,17 +252,24 @@ const App = {
     
     const billsSec = document.getElementById('vaultBillsSection');
     const reportsSec = document.getElementById('vaultReportsSection');
+    const backupSec = document.getElementById('vaultBackupSection');
     
+    if (billsSec) billsSec.style.display = 'none';
+    if (reportsSec) reportsSec.style.display = 'none';
+    if (backupSec) backupSec.style.display = 'none';
+
     if (tab === 'bills') {
       document.getElementById('segBills').classList.add('active');
       if (billsSec) billsSec.style.display = 'block';
-      if (reportsSec) reportsSec.style.display = 'none';
       if (typeof Bills !== 'undefined') Bills.load();
-    } else {
+    } else if (tab === 'reports') {
       document.getElementById('segReports').classList.add('active');
-      if (billsSec) billsSec.style.display = 'none';
       if (reportsSec) reportsSec.style.display = 'block';
       if (typeof Reports !== 'undefined') Reports.load();
+    } else if (tab === 'backup') {
+      document.getElementById('segBackup').classList.add('active');
+      if (backupSec) backupSec.style.display = 'block';
+      if (typeof Backup !== 'undefined') Backup.load();
     }
     this.refreshIcons();
   },

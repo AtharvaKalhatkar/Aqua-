@@ -13,8 +13,29 @@ const SUPABASE_URL = 'https://uszuutvdfavikxbyrduy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzenV1dHZkZmF2aWt4YnlyZHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTczODEsImV4cCI6MjA5NDEzMzM4MX0.o-m2FoorW7H3J8wA5_v9OlfKbU007u2QM41VjnwimR0';  // ← PASTE YOUR KEY HERE
 
 var supabase;
+
+// Fast-fail fetch wrapper for instant offline loading
+const fastFetch = async (url, options) => {
+  if (!navigator.onLine) {
+    throw new Error('Failed to fetch (Offline Mode)');
+  }
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+  options.signal = controller.signal;
+  try {
+    const response = await fetch(url, options);
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+};
+
 try {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: fastFetch }
+  });
 } catch (e) {
   console.error('Supabase init failed:', e);
 }
