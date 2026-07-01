@@ -110,7 +110,7 @@ const Dashboard = {
         const color = App.getAvatarColor(name);
         const entryTime = d.created_at ? (() => { let ts = d.created_at; if (!ts.endsWith('Z') && !ts.includes('+')) ts += 'Z'; return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }).toLowerCase(); })() : '';
 
-        html += `<div class="list-item" onclick="Dashboard.deleteDelivery(${d.id})">
+        html += `<div class="list-item" onclick="Deliveries.showDetail(${d.id})">
           <div class="list-avatar" style="background:${color}">${name.charAt(0).toUpperCase()}</div>
           <div class="list-content">
             <div class="list-name">${name}</div>

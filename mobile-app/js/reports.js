@@ -237,9 +237,9 @@ const Reports = {
         for(let d = 1; d <= daysInMonth; d++) {
            if (dMap[d]) {
              const val = `${dMap[d].j}/${dMap[d].b}`;
-             html += `<td class="active-cell" onclick="Reports.editCell(${c.cid}, '${c.name.replace(/'/g, "\\'")}', ${y}, ${m}, ${d}, ${dMap[d].j}, ${dMap[d].b}, ${dMap[d].id})">${val}</td>`;
+             html += `<td class="active-cell" onclick="Reports.editCell(${c.cid}, '${App.escapeAttr(c.name)}', ${y}, ${m}, ${d}, ${dMap[d].j}, ${dMap[d].b}, ${dMap[d].id})">${val}</td>`;
            } else {
-             html += `<td style="opacity:0.15" onclick="Reports.editCell(${c.cid}, '${c.name.replace(/'/g, "\\'")}', ${y}, ${m}, ${d}, 0, 0, null)">—</td>`;
+             html += `<td style="opacity:0.15" onclick="Reports.editCell(${c.cid}, '${App.escapeAttr(c.name)}', ${y}, ${m}, ${d}, 0, 0, null)">—</td>`;
            }
         }
         
@@ -319,12 +319,13 @@ const Reports = {
     }
   },
   
-  editCell(cid, name, y, m, d, jars, bottles, existingId) {
+   editCell(cid, name, y, m, d, jars, bottles, existingId) {
      const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+     const safeName = App.escapeAttr(name);
      App.showModal(`
         <div class="modal-title"><i data-lucide="edit"></i> Quick Edit</div>
         <div style="background:var(--bg-slate); padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid var(--border-slate);">
-           <div style="font-size:12px; color:var(--text-secondary); margin-bottom:5px;">Customer: <strong style="color:var(--text-primary);">${name}</strong></div>
+           <div style="font-size:12px; color:var(--text-secondary); margin-bottom:5px;">Customer: <strong style="color:var(--text-primary);">${safeName}</strong></div>
            <div style="font-size:12px; color:var(--text-secondary);">Date: <strong style="color:var(--text-primary);">${dateStr}</strong></div>
         </div>
         <div class="form-row">
@@ -359,9 +360,8 @@ const Reports = {
          if (existingId) {
              await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles }, { id: parseInt(existingId) });
          } else {
-             await OfflineVault.safeInsert('deliveries', {
-                id: Math.floor(Date.now() / 1000),
-                customer_id: cid,
+              await OfflineVault.safeInsert('deliveries', {
+                 customer_id: cid,
                 delivery_date: date,
                 jar_qty: jars,
                 bottle_qty: bottles,

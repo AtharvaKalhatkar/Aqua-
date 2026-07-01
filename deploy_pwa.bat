@@ -6,7 +6,7 @@ echo ============================================
 echo.
 
 REM 1. Sync source files from mobile-app/ to mobile-app/www/
-echo [1/5] Syncing source files to www bundle...
+echo [1/4] Syncing source files to www bundle...
 xcopy /Y /I /E "mobile-app\*.html" "mobile-app\www\" >nul
 xcopy /Y /I /E "mobile-app\css\*" "mobile-app\www\css\" >nul
 xcopy /Y /I /E "mobile-app\js\*" "mobile-app\www\js\" >nul
@@ -15,53 +15,39 @@ copy /Y "mobile-app\sw.js" "mobile-app\www\sw.js" >nul
 copy /Y "mobile-app\manifest.json" "mobile-app\www\manifest.json" >nul
 echo  Done!
 
-REM 2. Commit the updated www files to main
-echo [2/5] Committing to main branch...
+REM 2. Commit and push www changes to main
+echo [2/4] Committing to main branch...
 git add mobile-app/www
-git commit -m "Update PWA deploy bundle v55"
+git commit -m "Update PWA deploy bundle"
 git push origin main
 echo  Done!
 
-REM 3. Split the www subtree
-echo [3/5] Extracting www subtree...
+REM 3. Extract www subtree and create gh-pages commit with mobile-app/ subdirectory
+echo [3/4] Building gh-pages branch...
 for /f %%i in ('git subtree split --prefix mobile-app/www main') do set WWW_HASH=%%i
-echo  Subtree hash: !WWW_HASH!
 
-REM 4. Build gh-pages branch with content in mobile-app/ subdirectory
-echo [4/5] Building gh-pages branch...
-git branch -D gh-pages-deploy 2>nul
-git checkout --orphan gh-pages-deploy
-git rm -rf . 2>nul
+REM Get tree hash of the www commit
+for /f %%i in ('git rev-parse !WWW_HASH!^{tree}') do set WWW_TREE=%%i
 
-REM Checkout www content into root
-git checkout !WWW_HASH! -- .
+REM Create root index.html blob that redirects to ./mobile-app/
+for /f %%i in ('echo ^<^!DOCTYPE html^>^<html^>^<head^>^<meta http-equiv="refresh" content="0;url=./mobile-app/"^>^<title^>Bhairavnath Aqua^</title^>^</head^>^<body^>^<script^>location.href^=^"./mobile-app/"^</script^>^</body^>^</html^> ^| git hash-object -w --stdin') do set INDEX_BLOB=%%i
 
-REM Move everything into mobile-app/ subfolder
-if not exist mobile-app mkdir mobile-app
-for /f "delims=" %%i in ('dir /b') do (
-  if not "%%i"=="mobile-app" move "%%i" "mobile-app\%%i" >nul 2>nul
-)
-for /d %%i in (*) do (
-  if not "%%i"=="mobile-app" move "%%i" "mobile-app\%%i" >nul 2>nul
-)
+REM Create root tree with mobile-app/ subdirectory
+for /f %%i in ('echo 040000 tree !WWW_TREE!	mobile-app ^& echo 100644 blob !INDEX_BLOB!	index.html ^| git mktree') do set ROOT_TREE=%%i
 
-REM Create root index.html that redirects to mobile-app/
-echo ^<meta http-equiv="refresh" content="0;url=./mobile-app/"^>^<script^>location.href="./mobile-app/"^</script^> > index.html
+REM Create commit
+for /f %%i in ('git commit-tree !ROOT_TREE! -m "Deploy PWA"') do set DEPLOY_COMMIT=%%i
 
-git add -A
-git commit -m "Deploy PWA v55"
+REM 4. Force push to gh-pages
+echo [4/4] Pushing to gh-pages...
+git push origin !DEPLOY_COMMIT!:gh-pages --force
 echo  Done!
-
-REM 5. Force push to gh-pages
-echo [5/5] Pushing to gh-pages...
-git push origin gh-pages-deploy:gh-pages --force
-git checkout main
-git branch -D gh-pages-deploy 2>nul
 
 echo.
 echo ============================================
 echo  DEPLOY COMPLETE!
 echo ============================================
 echo.
-echo  Site URL: https://atharvakalhatkar.github.io/Aqua-/mobile-app/
+echo  PWA URL: https://atharvakalhatkar.github.io/Aqua-/mobile-app/
+echo  Root URL: https://atharvakalhatkar.github.io/Aqua-/
 echo.

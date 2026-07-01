@@ -250,10 +250,7 @@ const Bills = {
 
         // Removed window.confirm blocker to bypass browser suppression bugs
         
-        const generatedId = Math.floor(Date.now() / 1000);
-
         const res = await OfflineVault.safeInsert('bills', {
-          id: generatedId,
           customer_id: cid,
           bill_month: curMonth,
           bill_year: curYear,
@@ -478,9 +475,19 @@ const Bills = {
   },
 
   async showDetail(id) {
-    const { data: b } = await supabase.from('bills').select('*').eq('id', id).single();
+    let b, c;
+    try {
+      const resB = await supabase.from('bills').select('*').eq('id', id).single();
+      b = resB.data;
+      if (b) {
+        const resC = await supabase.from('customers').select('name,mobile,email').eq('id', b.customer_id).single();
+        c = resC.data;
+      }
+    } catch (e) {
+      App.toast('Cannot load bill details offline.', 'warning');
+      return;
+    }
     if (!b) return;
-    const { data: c } = await supabase.from('customers').select('name,mobile,email').eq('id', b.customer_id).single();
     
     const name = c?.name || 'Customer';
     const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -771,7 +778,6 @@ const Bills = {
                       const total = jA + bA;
                       
                       const res = await OfflineVault.safeInsert('bills', {
-                        id: Math.floor(Date.now() / 1000) + successCount,
                         customer_id: cid,
                         bill_month: curMonth,
                         bill_year: curYear,

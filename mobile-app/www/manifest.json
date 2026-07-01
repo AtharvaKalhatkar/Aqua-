@@ -3,6 +3,7 @@
   "short_name": "Aqua App",
   "description": "Water Delivery Management — Bhairavnath Cool Aqua",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0a0e1a",
   "theme_color": "#0a0e1a",

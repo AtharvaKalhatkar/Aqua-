@@ -398,6 +398,8 @@ const App = {
     }
   },
 
+  syncAll() { this.syncNow(); },
+
   async syncNow() {
     const btn = document.getElementById('btnSync');
     btn.classList.add('syncing');
@@ -437,6 +439,10 @@ const App = {
     const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
     const formatter = new Intl.DateTimeFormat('en-CA', options);
     return formatter.format(new Date()); 
+  },
+
+  escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   },
 
   avatarColors: ['#00e5ff','#a78bfa','#10b981','#f59e0b','#f43f5e','#38bdf8','#c084fc','#34d399'],

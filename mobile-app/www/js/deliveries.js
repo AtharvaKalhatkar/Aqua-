@@ -254,7 +254,6 @@ const Deliveries = {
         res = await OfflineVault.safeWrite('UPDATE', 'deliveries', { jar_qty: jars, bottle_qty: bottles }, { id: parseInt(existingId) });
       } else {
         res = await OfflineVault.safeInsert('deliveries', {
-          id: Math.floor(Date.now() / 1000),
           customer_id: customerId,
           delivery_date: date,
           jar_qty: jars,
@@ -275,8 +274,18 @@ const Deliveries = {
   },
 
   async showDetail(id) {
-    const { data: d } = await supabase.from('deliveries').select('*, customers(name)').eq('id', id).single();
-    if (!d) return;
+    let d;
+    try {
+      const res = await supabase.from('deliveries').select('*, customers(name)').eq('id', id).single();
+      d = res.data;
+    } catch (e) {
+      const cached = localStorage.getItem('cache_del_' + App.todayStr());
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        d = parsed.find(x => x.id === id);
+      }
+    }
+    if (!d) { App.toast('Cannot load details offline.', 'warning'); return; }
     App.showModal(`
       <div class="modal-title"><i data-lucide="file-text"></i> Log Details</div>
       <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px; display:flex; flex-direction:column; gap:12px;">
