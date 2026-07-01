@@ -448,15 +448,17 @@ public class BillView extends VBox {
         exportPdfBtn.getStyleClass().add("btn-secondary");
         exportPdfBtn.setOnAction(e -> exportPDF());
 
-        Button emailBtn = new Button("📧  Email Bill");
-        emailBtn.getStyleClass().add("btn-secondary");
-        emailBtn.setStyle("-fx-border-color: #0069b4; -fx-text-fill: #0069b4; -fx-font-weight: bold;");
-        emailBtn.setOnAction(e -> emailBill());
+        // Removed emailBtn per user request
 
         Button waBtn = new Button("💬 WhatsApp");
         waBtn.getStyleClass().add("btn-secondary");
         waBtn.setStyle("-fx-border-color: #25D366; -fx-text-fill: #25D366; -fx-font-weight: bold;");
         waBtn.setOnAction(e -> sendWhatsApp());
+
+        Button bulkWaBtn = new Button("🤖 Bulk WhatsApp");
+        bulkWaBtn.getStyleClass().add("btn-secondary");
+        bulkWaBtn.setStyle("-fx-border-color: #128C7E; -fx-text-fill: #128C7E; -fx-font-weight: bold;");
+        bulkWaBtn.setOnAction(e -> sendBulkWhatsApp());
 
         printBtn = new Button("🖨️  Print");
         printBtn.getStyleClass().add("btn-secondary");
@@ -468,10 +470,10 @@ public class BillView extends VBox {
 
         Button emailConfigBtn = new Button("⚙️");
         emailConfigBtn.getStyleClass().add("btn-secondary");
-        emailConfigBtn.setTooltip(new Tooltip("Configure Email Settings"));
+        emailConfigBtn.setTooltip(new Tooltip("Configure Payment Settings"));
         emailConfigBtn.setOnAction(e -> showEmailConfigDialog());
 
-        btnRow.getChildren().addAll(saveBillBtn, exportPdfBtn, emailBtn, waBtn, printBtn, clearBtn, emailConfigBtn);
+        btnRow.getChildren().addAll(saveBillBtn, exportPdfBtn, waBtn, bulkWaBtn, printBtn, clearBtn, emailConfigBtn);
 
         formBox.getChildren().addAll(formTitle, searchBox, cardsRow, btnRow);
         formBox.setOnKeyPressed(e -> {
@@ -574,18 +576,14 @@ public class BillView extends VBox {
         actCol.setMinWidth(220);
         actCol.setCellFactory(col -> new TableCell<>() {
             private final Button pdfBtn = new Button("📄");
-            private final Button emailActBtn = new Button("📧");
             private final Button waActBtn = new Button("💬");
             private final Button paidBtn = new Button("✅");
-            private final HBox box = new HBox(6, pdfBtn, emailActBtn, waActBtn, paidBtn);
+            private final HBox box = new HBox(6, pdfBtn, waActBtn, paidBtn);
             {
                 pdfBtn.getStyleClass().add("btn-small-edit");
                 pdfBtn.setMinWidth(36); pdfBtn.setPrefWidth(36);
                 
-                emailActBtn.getStyleClass().add("btn-small-edit");
-                emailActBtn.setMinWidth(36); emailActBtn.setPrefWidth(36);
-                emailActBtn.setStyle("-fx-background-color: #e3f2fd; -fx-text-fill: #0069b4;");
-                
+                // Removed emailActBtn
                 waActBtn.getStyleClass().add("btn-small-edit");
                 waActBtn.setMinWidth(36); waActBtn.setPrefWidth(36);
                 waActBtn.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #25D366;");
@@ -595,7 +593,6 @@ public class BillView extends VBox {
                 
                 box.setAlignment(Pos.CENTER);
                 pdfBtn.setOnAction(e -> exportBillPDF(getTableView().getItems().get(getIndex())));
-                emailActBtn.setOnAction(e -> emailBillFromTable(getTableView().getItems().get(getIndex())));
                 waActBtn.setOnAction(e -> sendWhatsAppFromTable(getTableView().getItems().get(getIndex())));
                 paidBtn.setOnAction(e -> togglePaid(getTableView().getItems().get(getIndex())));
             }
@@ -871,7 +868,7 @@ public class BillView extends VBox {
             msg.append("Mob: 7030355656 / 8888355656");
 
             String encodedMsg = java.net.URLEncoder.encode(msg.toString(), "UTF-8").replace("+", "%20");
-            String waUrl = "https://wa.me/" + mobile + "?text=" + encodedMsg;
+            String waUrl = "whatsapp://send?phone=" + mobile + "&text=" + encodedMsg;
 
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new java.net.URI(waUrl));
@@ -882,6 +879,101 @@ public class BillView extends VBox {
             AlertUtil.showError("WhatsApp Error", "Failed to open WhatsApp: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void sendBulkWhatsApp() {
+        List<Bill> bills = billTable.getItems();
+        if (bills == null || bills.isEmpty()) {
+            AlertUtil.showWarning("No Bills", "No bills generated for this month to send.");
+            return;
+        }
+
+        Alert progressAlert = new Alert(Alert.AlertType.INFORMATION);
+        progressAlert.setTitle("Bulk WhatsApp (Safe Mode)");
+        progressAlert.setHeaderText("Sending bills to " + bills.size() + " customers...");
+        progressAlert.setContentText("Please wait. Do not close this window.\nTo prevent ban, we wait 15 seconds between each message.");
+        progressAlert.show();
+
+        new Thread(() -> {
+            int count = 0;
+            for (Bill oldBill : bills) {
+                // Get customer mobile
+                Customer cust = customerService.getCustomerById(oldBill.getCustomerId());
+                if (cust == null) continue;
+                
+                // CRITICAL FIX: Recalculate the bill right before sending to ensure it captures any new deliveries added after the bill was originally saved!
+                Bill bill = billService.generateBill(cust, oldBill.getBillMonth(), oldBill.getBillYear(), oldBill.getJarRate(), oldBill.getBottleRate());
+                
+                String mobile = (cust.getMobile() != null) ? cust.getMobile().replaceAll("[^0-9]", "") : "";
+                if (mobile.isEmpty()) continue;
+                if (mobile.length() == 10) mobile = "91" + mobile;
+
+                try {
+                    StringBuilder msg = new StringBuilder();
+                    msg.append("*Bhairavnath Cool Aqua* 💧\n");
+                    msg.append("Dear ").append(bill.getCustomerName()).append(",\n");
+                    msg.append("Your water delivery bill for *").append(bill.getMonthName()).append(" ")
+                            .append(bill.getBillYear()).append("* is ready.\n\n");
+                    msg.append("*Bill Summary:*\n");
+                    msg.append("Jars (20L): ").append(bill.getTotalJars()).append(" x ₹")
+                            .append(String.format("%.0f", bill.getJarRate())).append(" = ₹")
+                            .append(String.format("%.0f", bill.getJarAmount())).append("\n");
+                    msg.append("Bottles (20L): ").append(bill.getTotalBottles()).append(" x ₹")
+                            .append(String.format("%.0f", bill.getBottleRate())).append(" = ₹")
+                            .append(String.format("%.0f", bill.getBottleAmount())).append("\n");
+                    msg.append("--------------------\n");
+                    msg.append("*Grand Total: ₹").append(String.format("%.0f", bill.getGrandTotal())).append("*\n\n");
+
+                    String upiId = emailService.getUpiId();
+                    if (upiId == null || upiId.trim().isEmpty()) {
+                        upiId = "kalhatkaratharva01@okhdfcbank";
+                    }
+
+                    String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
+                            : "Bhairavnath Cool Aqua";
+                    String upiUri = String.format("upi://pay?pa=%s&pn=%s&am=%.0f&cu=INR&tn=AquaBill",
+                            upiId.trim().replace(" ", ""),
+                            senderName.trim().replace(" ", "%20"),
+                            bill.getGrandTotal());
+
+                    msg.append("💳 *Pay Instantly via UPI (GPay/PhonePe/Paytm):*\n");
+                    msg.append(upiUri).append("\n\n");
+                    msg.append("Or pay directly to UPI ID: *").append(upiId.trim()).append("*\n\n");
+
+                    msg.append("Thank you for your business!\n");
+                    msg.append("Mob: 7030355656 / 8888355656");
+
+                    String encodedMsg = java.net.URLEncoder.encode(msg.toString(), "UTF-8").replace("+", "%20");
+                    
+                    // Use Deep Link to prevent browser tabs
+                    String waUrl = "whatsapp://send?phone=" + mobile + "&text=" + encodedMsg;
+
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().browse(new java.net.URI(waUrl));
+                    }
+                    
+                    count++;
+                    final int currCount = count;
+                    final String cName = bill.getCustomerName();
+                    
+                    javafx.application.Platform.runLater(() -> {
+                        progressAlert.setContentText("Sent " + currCount + " of " + bills.size() + "\nLast sent: " + cName + "\n\nWaiting 15 seconds to prevent spam ban...");
+                    });
+                    
+                    // Wait 15 seconds between messages
+                    Thread.sleep(15000); 
+
+                } catch (Exception ex) {
+                    System.err.println("Bulk WA error for " + bill.getCustomerName() + ": " + ex.getMessage());
+                }
+            }
+            
+            final int totalSent = count;
+            javafx.application.Platform.runLater(() -> {
+                progressAlert.close();
+                AlertUtil.showSuccess("Bulk WhatsApp Complete!\nSuccessfully opened WhatsApp for " + totalSent + " customers.\nRemember to click Send in WhatsApp Desktop!");
+            });
+        }).start();
     }
 
     private void emailBill() {
@@ -1050,22 +1142,13 @@ public class BillView extends VBox {
 
     private void showEmailConfigDialog() {
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("⚙️ Payment & Email Configuration");
-        dialog.setHeaderText("Configure your UPI ID and Email settings for fully automated invoicing");
+        dialog.setTitle("⚙️ Payment Configuration");
+        dialog.setHeaderText("Configure your UPI ID for fully automated invoicing in WhatsApp");
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(12);
         grid.setPadding(new Insets(20));
-
-        TextField emailField = new TextField(
-                emailService.getSenderEmail() != null ? emailService.getSenderEmail() : "");
-        emailField.setPromptText("your.email@gmail.com");
-        emailField.setPrefWidth(300);
-
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Gmail App Password (16 chars)");
-        passwordField.setPrefWidth(300);
 
         TextField nameField = new TextField(
                 emailService.getSenderName() != null ? emailService.getSenderName() : "Bhairavnath Cool Aqua");
@@ -1077,25 +1160,16 @@ public class BillView extends VBox {
         upiField.setPrefWidth(300);
 
         Label helpLabel = new Label(
-                "⚠️ You need a Gmail App Password (NOT your login password):\n" +
-                        "1. Go to myaccount.google.com → Security\n" +
-                        "2. Enable 2-Step Verification\n" +
-                        "3. Search 'App passwords' → Create one for 'Mail'\n" +
-                        "4. Copy the 16-character password here\n\n" +
-                        "💳 *PAYMENT SETUP:* Enter your UPI ID above to automatically include CLICKABLE payment links in both WhatsApp messages and Emails!");
+                        "💳 *PAYMENT SETUP:* Enter your UPI ID above to automatically include CLICKABLE payment links in WhatsApp messages!");
         helpLabel.setWrapText(true);
         helpLabel.setStyle("-fx-text-fill: #666; -fx-font-size: 11px;");
         helpLabel.setMaxWidth(400);
 
-        grid.add(new Label("Gmail Email:"), 0, 0);
-        grid.add(emailField, 1, 0);
-        grid.add(new Label("App Password:"), 0, 1);
-        grid.add(passwordField, 1, 1);
-        grid.add(new Label("Sender Name:"), 0, 2);
-        grid.add(nameField, 1, 2);
-        grid.add(new Label("UPI ID (Optional):"), 0, 3);
-        grid.add(upiField, 1, 3);
-        grid.add(helpLabel, 0, 4, 2, 1);
+        grid.add(new Label("Sender Name:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("UPI ID (Optional):"), 0, 1);
+        grid.add(upiField, 1, 1);
+        grid.add(helpLabel, 0, 2, 2, 1);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -1104,16 +1178,10 @@ public class BillView extends VBox {
 
         dialog.setResultConverter(btn -> {
             if (btn == saveType) {
-                String em = emailField.getText().trim();
-                String pw = passwordField.getText().trim();
                 String nm = nameField.getText().trim();
                 String upi = upiField.getText().trim();
-                if (em.isEmpty() || pw.isEmpty()) {
-                    AlertUtil.showWarning("Validation", "Email and App Password are required.");
-                    return null;
-                }
-                emailService.saveConfig(em, pw, nm.isEmpty() ? "Bhairavnath Cool Aqua" : nm, upi);
-                AlertUtil.showSuccess("✅ Email configured!\nEmails will be sent from: " + em);
+                emailService.saveConfig("no-reply@example.com", "nopass", nm.isEmpty() ? "Bhairavnath Cool Aqua" : nm, upi);
+                AlertUtil.showSuccess("✅ Payment Configured!\nYour UPI links are ready for WhatsApp.");
             }
             return null;
         });

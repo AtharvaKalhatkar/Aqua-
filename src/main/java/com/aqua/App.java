@@ -32,6 +32,8 @@ public class App extends Application {
     private DeliveryView deliveryView;
     private BillView billView;
     private ReportsView reportsView;
+    private BroadcasterView broadcasterView;
+    private BulkBillingView bulkBillingView;
     private Button activeButton = null;
     private Button[] navButtons;
     private Label statusLabel;
@@ -85,6 +87,8 @@ public class App extends Application {
         deliveryView = new DeliveryView();
         billView = new BillView();
         reportsView = new ReportsView();
+        broadcasterView = new BroadcasterView();
+        bulkBillingView = new BulkBillingView();
 
         showView(dashboardView);
         updateStatus("📊 Dashboard");
@@ -100,6 +104,8 @@ public class App extends Application {
                     case DIGIT3 -> { showView(billView); billView.refreshData(); setActive(navButtons[2]); updateStatus("📋 Bills"); e.consume(); }
                     case DIGIT4 -> { showView(customerView); customerView.refreshData(); setActive(navButtons[3]); updateStatus("👥 Customers"); e.consume(); }
                     case DIGIT5 -> { showView(reportsView); reportsView.refreshData(); setActive(navButtons[4]); updateStatus("📊 Reports"); e.consume(); }
+                    case DIGIT6 -> { showView(broadcasterView); broadcasterView.refreshData(); setActive(navButtons[5]); updateStatus("💬 Broadcaster"); e.consume(); }
+                    case DIGIT7 -> { showView(bulkBillingView); bulkBillingView.refreshData(); setActive(navButtons[6]); updateStatus("⚡ Bulk Billing"); e.consume(); }
                 }
             }
         });
@@ -169,12 +175,14 @@ public class App extends Application {
         VBox navBox = new VBox(4);
         navBox.setPadding(new Insets(14, 10, 10, 10));
 
-        navButtons = new Button[5];
+        navButtons = new Button[7];
         navButtons[0] = navBtn("📊  Dashboard", "Alt+1", () -> { showView(dashboardView); dashboardView.refreshData(); updateStatus("📊 Dashboard"); });
         navButtons[1] = navBtn("🚚  Deliveries", "Alt+2", () -> { showView(deliveryView); deliveryView.refreshData(); updateStatus("🚚 Deliveries"); });
         navButtons[2] = navBtn("📋  Bills", "Alt+3", () -> { showView(billView); billView.refreshData(); updateStatus("📋 Bills"); });
         navButtons[3] = navBtn("👥  Customers", "Alt+4", () -> { showView(customerView); customerView.refreshData(); updateStatus("👥 Customers"); });
         navButtons[4] = navBtn("📊  Reports", "Alt+5", () -> { showView(reportsView); reportsView.refreshData(); updateStatus("📊 Reports"); });
+        navButtons[5] = navBtn("💬  Broadcaster", "Alt+6", () -> { showView(broadcasterView); broadcasterView.refreshData(); updateStatus("💬 Broadcaster"); });
+        navButtons[6] = navBtn("⚡  Bulk Bill", "Alt+7", () -> { showView(bulkBillingView); bulkBillingView.refreshData(); updateStatus("⚡ Bulk Billing"); });
 
         navBox.getChildren().addAll(navButtons);
         setActive(navButtons[0]);

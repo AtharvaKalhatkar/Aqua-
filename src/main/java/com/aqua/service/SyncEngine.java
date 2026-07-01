@@ -168,14 +168,22 @@ public class SyncEngine {
     private static void pushCustomers(Connection db) throws Exception {
         String q = "SELECT * FROM customers WHERE sync_status = 'PENDING'";
         try (Statement s = db.createStatement(); ResultSet rs = s.executeQuery(q)) {
+            StringBuilder jsonArray = new StringBuilder("[");
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String json = String.format("{\"id\":%d,\"name\":\"%s\",\"address\":\"%s\",\"mobile\":\"%s\",\"route\":\"%s\",\"email\":\"%s\"}",
                     id, rs.getString("name"), rs.getString("address"), rs.getString("mobile"), rs.getString("route"), rs.getString("email"));
                 
-                if (upsertToCloud("customers", json)) {
-                    db.createStatement().executeUpdate("UPDATE customers SET sync_status = 'SYNCED' WHERE id = " + id);
-                }
+                if (ids.size() > 0) jsonArray.append(",");
+                jsonArray.append(json);
+                ids.add(id);
+            }
+            jsonArray.append("]");
+
+            if (!ids.isEmpty() && upsertToCloud("customers", jsonArray.toString())) {
+                String idList = ids.toString().replace("[", "").replace("]", "");
+                db.createStatement().executeUpdate("UPDATE customers SET sync_status = 'SYNCED' WHERE id IN (" + idList + ")");
             }
         }
     }
@@ -183,14 +191,22 @@ public class SyncEngine {
     private static void pushDeliveries(Connection db) throws Exception {
         String q = "SELECT * FROM deliveries WHERE sync_status = 'PENDING'";
         try (Statement s = db.createStatement(); ResultSet rs = s.executeQuery(q)) {
+            StringBuilder jsonArray = new StringBuilder("[");
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String json = String.format("{\"id\":%d,\"customer_id\":%d,\"delivery_date\":\"%s\",\"jar_qty\":%d,\"bottle_qty\":%d}",
                     id, rs.getInt("customer_id"), rs.getString("delivery_date"), rs.getInt("jar_qty"), rs.getInt("bottle_qty"));
                 
-                if (upsertToCloud("deliveries", json)) {
-                    db.createStatement().executeUpdate("UPDATE deliveries SET sync_status = 'SYNCED' WHERE id = " + id);
-                }
+                if (ids.size() > 0) jsonArray.append(",");
+                jsonArray.append(json);
+                ids.add(id);
+            }
+            jsonArray.append("]");
+
+            if (!ids.isEmpty() && upsertToCloud("deliveries", jsonArray.toString())) {
+                String idList = ids.toString().replace("[", "").replace("]", "");
+                db.createStatement().executeUpdate("UPDATE deliveries SET sync_status = 'SYNCED' WHERE id IN (" + idList + ")");
             }
         }
     }
@@ -198,14 +214,22 @@ public class SyncEngine {
     private static void pushBills(Connection db) throws Exception {
         String q = "SELECT * FROM bills WHERE sync_status = 'PENDING'";
         try (Statement s = db.createStatement(); ResultSet rs = s.executeQuery(q)) {
+            StringBuilder jsonArray = new StringBuilder("[");
+            java.util.List<Integer> ids = new java.util.ArrayList<>();
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String json = String.format(java.util.Locale.US, "{\"id\":%d,\"customer_id\":%d,\"bill_month\":%d,\"bill_year\":%d,\"total_jars\":%d,\"total_bottles\":%d,\"jar_rate\":%.2f,\"bottle_rate\":%.2f,\"jar_amount\":%.2f,\"bottle_amount\":%.2f,\"grand_total\":%.2f,\"status\":\"%s\"}",
                     id, rs.getInt("customer_id"), rs.getInt("bill_month"), rs.getInt("bill_year"), rs.getInt("total_jars"), rs.getInt("total_bottles"), rs.getDouble("jar_rate"), rs.getDouble("bottle_rate"), rs.getDouble("jar_amount"), rs.getDouble("bottle_amount"), rs.getDouble("grand_total"), rs.getString("status"));
                 
-                if (upsertToCloud("bills", json)) {
-                    db.createStatement().executeUpdate("UPDATE bills SET sync_status = 'SYNCED' WHERE id = " + id);
-                }
+                if (ids.size() > 0) jsonArray.append(",");
+                jsonArray.append(json);
+                ids.add(id);
+            }
+            jsonArray.append("]");
+
+            if (!ids.isEmpty() && upsertToCloud("bills", jsonArray.toString())) {
+                String idList = ids.toString().replace("[", "").replace("]", "");
+                db.createStatement().executeUpdate("UPDATE bills SET sync_status = 'SYNCED' WHERE id IN (" + idList + ")");
             }
         }
     }
