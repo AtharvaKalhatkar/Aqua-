@@ -98,14 +98,7 @@ const OfflineVault = {
     return { success: true, error: null, offline: true };
   },
   
-  uid() {
-    const ts = Date.now();
-    const rand = Math.floor(Math.random() * 10000);
-    return ts * 10000 + rand;
-  },
-
   async safeInsert(table, record) {
-    if (!record.id) record.id = this.uid();
     return this.safeWrite('INSERT', table, record);
   },
 
