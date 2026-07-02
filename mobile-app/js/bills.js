@@ -249,11 +249,6 @@ const Bills = {
         const total = jA + bA;
 
         // Removed window.confirm blocker to bypass browser suppression bugs
-<<<<<<< HEAD
-        
-=======
-
->>>>>>> c83eb0e (fix: remove client-side ID generation causing integer overflow in PostgreSQL - Removed Math.floor(Date.now()/1000) ID generation from deliveries, customers, and bills - Let Supabase auto-generate safe sequential IDs - Fixed across all 3 app directories (mobile-app, js, app) - Also removed redundant manual created_at/updated_at timestamps)
         const res = await OfflineVault.safeInsert('bills', {
           customer_id: cid,
           bill_month: curMonth,
@@ -766,7 +761,6 @@ const Bills = {
       });
       
       window.executeMobileBulkBilling = async function() {
-<<<<<<< HEAD
           App.confirm('Generate ' + unbilledIds.length + ' invoices? Please ensure all rates are entered correctly.', () => {
               App.confirm('WARNING: Final Confirmation. Are you ABSOLUTELY sure? This will lock in the rates and instantly generate the bills.', async () => {
                   App.closeModal();
@@ -802,34 +796,6 @@ const Bills = {
                   
                   App.toast('Bulk generation complete: ' + successCount + ' generated.', 'success');
                   Bills.load();
-=======
-          App.closeModal();
-          App.toast('Processing ' + unbilledIds.length + ' bills...', 'info');
-          
-          let successCount = 0;
-          for (let cid of unbilledIds) {
-              const qty = delMap[cid];
-              const jarRate = parseFloat(document.getElementById(`jar-rate-${cid}`).value) || 0;
-              const botRate = parseFloat(document.getElementById(`bot-rate-${cid}`).value) || 0;
-              
-              const jA = qty.jars * jarRate;
-              const bA = qty.bottles * botRate;
-              const total = jA + bA;
-              
-              const res = await OfflineVault.safeInsert('bills', {
-                customer_id: cid,
-                bill_month: curMonth,
-                bill_year: curYear,
-                total_jars: qty.jars,
-                total_bottles: qty.bottles,
-                jar_rate: jarRate,
-                bottle_rate: botRate,
-                jar_amount: jA,
-                bottle_amount: bA,
-                grand_total: total,
-                status: 'PENDING',
-                generated_at: new Date().toISOString()
->>>>>>> c83eb0e (fix: remove client-side ID generation causing integer overflow in PostgreSQL - Removed Math.floor(Date.now()/1000) ID generation from deliveries, customers, and bills - Let Supabase auto-generate safe sequential IDs - Fixed across all 3 app directories (mobile-app, js, app) - Also removed redundant manual created_at/updated_at timestamps)
               });
           });
       };
