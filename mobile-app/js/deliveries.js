@@ -1,4 +1,4 @@
-/* ===== Deliveries Module ===== */
+ /* ===== Deliveries Module ===== */
 const Deliveries = {
   selectedDate: null,
 
@@ -257,9 +257,7 @@ const Deliveries = {
           customer_id: customerId,
           delivery_date: date,
           jar_qty: jars,
-          bottle_qty: bottles,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          bottle_qty: bottles
         });
       }
       

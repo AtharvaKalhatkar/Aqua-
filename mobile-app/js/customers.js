@@ -225,9 +225,7 @@ const Customers = {
         address: document.getElementById('custAddress').value.trim(),
         mobile: document.getElementById('custMobile').value.trim(),
         route: document.getElementById('custRoute').value.trim(),
-        email: document.getElementById('custEmail').value.trim(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        email: document.getElementById('custEmail').value.trim()
       });
       if (res.error) throw res.error;
       App.closeModal();
