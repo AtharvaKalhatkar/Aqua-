@@ -98,7 +98,15 @@ const OfflineVault = {
     return { success: true, error: null, offline: true };
   },
   
+  _idCounter: 0,
+  uid() {
+    this._idCounter++;
+    // Generate a safe integer (max 2.14B). Current Date.now()/1000 is ~1.78B.
+    return Math.floor(Date.now() / 1000) + this._idCounter;
+  },
+
   async safeInsert(table, record) {
+    if (!record.id) record.id = this.uid();
     return this.safeWrite('INSERT', table, record);
   },
 
