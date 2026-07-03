@@ -1,5 +1,105 @@
 /* ===== Bills Module ===== */
 const Bills = {
+  // Helper: Generate invoice PDF as a File object
+  async generateInvoicePdf(invoiceHtml, fileName) {
+    return new Promise((resolve, reject) => {
+      try {
+        const container = document.createElement('div');
+        container.style.cssText = 'position:fixed; left:-9999px; top:0; width:595px; background:#fff; z-index:-1; padding:30px; box-sizing:border-box;';
+        container.innerHTML = invoiceHtml;
+        document.body.appendChild(container);
+        
+        // Wait for images (logo, QR) to load
+        const images = container.querySelectorAll('img');
+        const imgPromises = Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(r => { img.onload = r; img.onerror = r; });
+        });
+        
+        Promise.all(imgPromises).then(() => {
+          setTimeout(() => {
+            html2canvas(container, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' }).then(canvas => {
+              document.body.removeChild(container);
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF('p', 'mm', 'a4');
+              const pageW = pdf.internal.pageSize.getWidth();
+              const pageH = pdf.internal.pageSize.getHeight();
+              const imgW = pageW - 20;
+              const imgH = (canvas.height * imgW) / canvas.width;
+              pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 10, 10, imgW, Math.min(imgH, pageH - 20));
+              const blob = pdf.output('blob');
+              const file = new File([blob], fileName, { type: 'application/pdf' });
+              resolve(file);
+            }).catch(err => {
+              document.body.removeChild(container);
+              reject(err);
+            });
+          }, 500);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  },
+
+  // Helper: Build invoice HTML string for PDF generation
+  buildInvoiceHtml(customerName, period, jars, bottles, jarRate, botRate, jarAmt, botAmt, total, billNo) {
+    function inWords(num) {
+      if (num === 0) return 'Zero';
+      const a = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+      const b = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+      const helper = (n) => {
+        if (n < 20) return a[n];
+        if (n < 100) return b[Math.floor(n/10)] + (n%10!==0?' '+a[n%10]:'');
+        if (n < 1000) return a[Math.floor(n/100)] + ' Hundred' + (n%100!==0?' and ' + helper(n%100):'');
+        if (n < 100000) return helper(Math.floor(n/1000)) + ' Thousand' + (n%1000!==0?' ' + helper(n%1000):'');
+        return helper(Math.floor(n/100000)) + ' Lakh' + (n%100000!==0?' ' + helper(n%100000):'');
+      };
+      return helper(num);
+    }
+    const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${total}&cu=INR`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+    const dateStr = new Date().toLocaleDateString('en-IN');
+    const billLabel = billNo ? `No: ${billNo}` : 'Draft / Mobile';
+    
+    return `
+      <div style="font-family: 'Times New Roman', Times, serif; color: #000; font-size: 12px; line-height: 1.4;">
+        <div style="text-align:center; font-weight:800; font-size:13px; margin-bottom:8px;">॥ श्री भैरवनाथ प्रसन्न ॥</div>
+        <div style="text-align:center; margin-bottom:6px;"><img src="https://atharvakalhatkar.github.io/newaquaapp/mobile-app/icons/logo.png" crossorigin="anonymous" style="width:50px; height:50px; border-radius:50%;"></div>
+        <div style="text-align:center; font-size:28px; font-weight:bold;">BHAIRAVNATH COOL AQUA</div>
+        <div style="text-align:center; font-size:11px;">Bathe Wasti, Talawade, Tal. Haveli, Dist. Pune - 411 062</div>
+        <div style="text-align:center; font-weight:bold;">Mob: 7030355656 / 8888355656</div>
+        <div style="border-top:2px solid #000; margin:8px 0 2px 0;"></div>
+        <div style="border-top:1px solid #000; margin-bottom:15px;"></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+          <div style="font-size:22px; font-weight:bold;">INVOICE</div>
+          <div style="font-weight:bold;">${billLabel}</div>
+          <div><strong>Date:</strong> ${dateStr}</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; border:1px solid #ccc; margin-bottom:20px;">
+          <div style="padding:10px; border-right:1px solid #ccc;"><div style="font-size:10px; font-weight:bold; color:#555;">BILL TO</div><div style="font-size:15px; font-weight:bold;">${customerName}</div></div>
+          <div style="padding:10px;"><div style="font-size:10px; font-weight:bold; color:#555;">BILLING PERIOD</div><div>Month: <strong>${period}</strong></div></div>
+        </div>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+          <thead><tr><th style="background:#000; color:#fff; padding:8px; border:1px solid #000; width:8%;">#</th><th style="background:#000; color:#fff; padding:8px; border:1px solid #000;">Description</th><th style="background:#000; color:#fff; padding:8px; border:1px solid #000; width:15%;">Qty</th><th style="background:#000; color:#fff; padding:8px; border:1px solid #000; width:15%;">Rate</th><th style="background:#000; color:#fff; padding:8px; border:1px solid #000; width:20%;">Amount</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:10px; border:1px solid #ccc; text-align:center;">1</td><td style="padding:10px; border:1px solid #ccc;">20 Ltr Water Jar</td><td style="padding:10px; border:1px solid #ccc; text-align:center;"><strong>${jars}</strong></td><td style="padding:10px; border:1px solid #ccc; text-align:center;">₹${jarRate}</td><td style="padding:10px; border:1px solid #ccc; text-align:right;"><strong>₹${Math.round(jarAmt)}</strong></td></tr>
+            <tr><td style="padding:10px; border:1px solid #ccc; text-align:center;">2</td><td style="padding:10px; border:1px solid #ccc;">20 Ltr Water Bottle</td><td style="padding:10px; border:1px solid #ccc; text-align:center;"><strong>${bottles}</strong></td><td style="padding:10px; border:1px solid #ccc; text-align:center;">₹${botRate}</td><td style="padding:10px; border:1px solid #ccc; text-align:right;"><strong>₹${Math.round(botAmt)}</strong></td></tr>
+            <tr style="font-weight:bold; background:#f9f9f9;"><td colspan="3" style="padding:10px; border:1px solid #ccc;"></td><td style="padding:10px; border:1px solid #ccc; text-align:right;">TOTAL</td><td style="padding:10px; border:1px solid #ccc; text-align:right;">₹${Math.round(total)}</td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex; justify-content:space-between; border:2px solid #000; padding:15px; margin-top:5px; align-items:center;">
+          <div style="font-style:italic; color:#444; max-width:65%;"><div style="font-size:10px; font-style:normal; font-weight:bold;">Amount in Words:</div>${inWords(Math.round(total))} Rupees Only</div>
+          <div style="text-align:right;"><div style="font-size:11px; font-weight:bold;">GRAND TOTAL</div><div style="font-size:22px; font-weight:bold;">₹ ${Math.round(total).toLocaleString('en-IN')}</div></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:15px; margin-top:20px;">
+          <div style="border:1px solid #ccc; padding:10px;"><strong style="display:block; font-size:10px; margin-bottom:5px;">BANK DETAILS</strong><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
+          <div style="border:1px solid #ccc; padding:10px; text-align:center;"><strong style="display:block; font-size:10px; margin-bottom:5px;">SCAN TO PAY</strong><img src="${qrUrl}" crossorigin="anonymous" style="display:block; margin:5px auto; width:100px; height:100px;"><div style="font-size:9px; font-weight:bold;">7030355656-6@ibl</div></div>
+          <div style="text-align:center; display:flex; flex-direction:column; justify-content:flex-end;"><div style="flex-grow:1;"></div><div style="border-top:1px solid #666; width:80%; margin:0 auto 5px auto;"></div><div style="font-weight:bold; font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div>
+        </div>
+        <div style="text-align:center; margin-top:25px; border-top:1px solid #eee; padding-top:5px; font-size:9px; font-style:italic; color:#888;">This is a computer generated invoice. | Bhairavnath Cool Aqua Management System</div>
+      </div>`;
+  },
   initialized: false,
   init() {
     if (this.initialized) return;
@@ -274,7 +374,7 @@ const Bills = {
       }
     };
 
-    window.shareWhatsApp = function() {
+    window.shareWhatsApp = async function() {
       const jR = parseFloat(document.getElementById('tempJarRate').value) || 0;
       const bR = parseFloat(document.getElementById('tempBotRate').value) || 0;
       const jA = jars * jR;
@@ -287,8 +387,27 @@ const Bills = {
 
       const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${decodedName},\nYour water delivery bill for *${fullMonths[curMonth]} ${curYear}* is ready.\n\n*Bill Summary:*\nJars (20L): ${jars} x ₹${jR} = ₹${Math.round(jA)}\nBottles (20L): ${bottles} x ₹${bR} = ₹${Math.round(bA)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
-      const waUrl = `https://wa.me/${mob}?text=${encodeURIComponent(msg)}`;
-      window.open(waUrl, '_blank');
+      // Try Web Share API with PDF attachment
+      if (navigator.share && navigator.canShare && typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined') {
+        try {
+          App.toast('Generating PDF invoice...', 'info');
+          const invoiceHtml = Bills.buildInvoiceHtml(decodedName, `${fullMonths[curMonth]} ${curYear}`, jars, bottles, jR, bR, jA, bA, t, null);
+          const pdfFile = await Bills.generateInvoicePdf(invoiceHtml, `Invoice_${decodedName}_${fullMonths[curMonth]}_${curYear}.pdf`);
+          
+          if (navigator.canShare({ files: [pdfFile] })) {
+            await navigator.share({
+              text: msg,
+              files: [pdfFile]
+            });
+            return;
+          }
+        } catch (e) {
+          if (e.name !== 'AbortError') console.error('Share failed:', e);
+          else return;
+        }
+      }
+      // Fallback: text-only WhatsApp link
+      window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
     };
 
     window.printTempBill = function() {
@@ -579,7 +698,7 @@ const Bills = {
       w.document.close();
     };
 
-    window.shareWhatsAppFinal = function() {
+    window.shareWhatsAppFinal = async function() {
       const rawMob = c?.mobile ? c.mobile.replace(/[^0-9]/g, "") : "";
       let mob = rawMob;
       if (mob.length === 10) mob = "91" + mob;
@@ -587,6 +706,27 @@ const Bills = {
       const t = b.grand_total;
       const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
+      // Try Web Share API with PDF attachment
+      if (navigator.share && navigator.canShare && typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined') {
+        try {
+          App.toast('Generating PDF invoice...', 'info');
+          const billNo = `BCA-${b.bill_year % 100}${String(b.bill_month).padStart(2,'0')}-${b.id}`;
+          const invoiceHtml = Bills.buildInvoiceHtml(name, `${fullMonths[b.bill_month]} ${b.bill_year}`, b.total_jars, b.total_bottles, b.jar_rate, b.bottle_rate, b.jar_amount, b.bottle_amount, t, billNo);
+          const pdfFile = await Bills.generateInvoicePdf(invoiceHtml, `Invoice_${name}_${fullMonths[b.bill_month]}_${b.bill_year}.pdf`);
+          
+          if (navigator.canShare({ files: [pdfFile] })) {
+            await navigator.share({
+              text: msg,
+              files: [pdfFile]
+            });
+            return;
+          }
+        } catch (e) {
+          if (e.name !== 'AbortError') console.error('Share failed:', e);
+          else return;
+        }
+      }
+      // Fallback: text-only WhatsApp link
       window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
     };
 
