@@ -27,7 +27,7 @@ echo [3/4] Building gh-pages branch...
 for /f %%i in ('git subtree split --prefix mobile-app/www main') do set WWW_HASH=%%i
 
 REM Get tree hash of the www commit
-for /f %%i in ('git rev-parse !WWW_HASH!^{tree}') do set WWW_TREE=%%i
+for /f "tokens=2" %%i in ('git cat-file -p !WWW_HASH! ^| findstr /b "tree"') do set WWW_TREE=%%i
 
 REM Create root index.html blob that redirects to ./mobile-app/
 for /f %%i in ('echo ^<^!DOCTYPE html^>^<html^>^<head^>^<meta http-equiv="refresh" content="0;url=./mobile-app/"^>^<title^>Bhairavnath Aqua^</title^>^</head^>^<body^>^<script^>location.href^=^"./mobile-app/"^</script^>^</body^>^</html^> ^| git hash-object -w --stdin') do set INDEX_BLOB=%%i

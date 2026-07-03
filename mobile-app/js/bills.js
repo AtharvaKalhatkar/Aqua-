@@ -387,27 +387,16 @@ const Bills = {
 
       const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${decodedName},\nYour water delivery bill for *${fullMonths[curMonth]} ${curYear}* is ready.\n\n*Bill Summary:*\nJars (20L): ${jars} x ₹${jR} = ₹${Math.round(jA)}\nBottles (20L): ${bottles} x ₹${bR} = ₹${Math.round(bA)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
-      // Try Web Share API with PDF attachment
-      if (navigator.share && navigator.canShare && typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined') {
-        try {
-          App.toast('Generating PDF invoice...', 'info');
-          const invoiceHtml = Bills.buildInvoiceHtml(decodedName, `${fullMonths[curMonth]} ${curYear}`, jars, bottles, jR, bR, jA, bA, t, null);
-          const pdfFile = await Bills.generateInvoicePdf(invoiceHtml, `Invoice_${decodedName}_${fullMonths[curMonth]}_${curYear}.pdf`);
-          
-          if (navigator.canShare({ files: [pdfFile] })) {
-            await navigator.share({
-              text: msg,
-              files: [pdfFile]
-            });
-            return;
-          }
-        } catch (e) {
-          if (e.name !== 'AbortError') console.error('Share failed:', e);
-          else return;
-        }
-      }
-      // Fallback: text-only WhatsApp link
-      window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
+      // Force native WhatsApp App on mobile
+      const waUrl = `whatsapp://send?phone=${mob}&text=${encodeURIComponent(msg)}`;
+      // Use window.location.href to reliably launch intents in Android/PWA
+      window.location.href = waUrl;
+      
+      // Fallback in case whatsapp:// fails (timeout)
+      setTimeout(() => {
+         // If still on the same page, we can show a hint, or they can use print
+         App.toast('If WhatsApp did not open, ensure it is installed.');
+      }, 2000);
     };
 
     window.printTempBill = function() {
@@ -706,28 +695,13 @@ const Bills = {
       const t = b.grand_total;
       const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
-      // Try Web Share API with PDF attachment
-      if (navigator.share && navigator.canShare && typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined') {
-        try {
-          App.toast('Generating PDF invoice...', 'info');
-          const billNo = `BCA-${b.bill_year % 100}${String(b.bill_month).padStart(2,'0')}-${b.id}`;
-          const invoiceHtml = Bills.buildInvoiceHtml(name, `${fullMonths[b.bill_month]} ${b.bill_year}`, b.total_jars, b.total_bottles, b.jar_rate, b.bottle_rate, b.jar_amount, b.bottle_amount, t, billNo);
-          const pdfFile = await Bills.generateInvoicePdf(invoiceHtml, `Invoice_${name}_${fullMonths[b.bill_month]}_${b.bill_year}.pdf`);
-          
-          if (navigator.canShare({ files: [pdfFile] })) {
-            await navigator.share({
-              text: msg,
-              files: [pdfFile]
-            });
-            return;
-          }
-        } catch (e) {
-          if (e.name !== 'AbortError') console.error('Share failed:', e);
-          else return;
-        }
-      }
-      // Fallback: text-only WhatsApp link
-      window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
+      // Force native WhatsApp App on mobile
+      const waUrl = `whatsapp://send?phone=${mob}&text=${encodeURIComponent(msg)}`;
+      window.location.href = waUrl;
+      
+      setTimeout(() => {
+         App.toast('If WhatsApp did not open, ensure it is installed.');
+      }, 2000);
     };
 
     window.sendEmailFinal = function() {

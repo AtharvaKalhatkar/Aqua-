@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bhairavnath Aqua</string>
+    <string name="title_activity_main">Bhairavnath Aqua</string>
+    <string name="package_name">com.aqua.app</string>
+    <string name="custom_url_scheme">com.aqua.app</string>
+</resources>

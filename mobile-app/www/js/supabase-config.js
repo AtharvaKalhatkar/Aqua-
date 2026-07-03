@@ -99,9 +99,7 @@ const OfflineVault = {
   },
   
   uid() {
-    const ts = Date.now();
-    const rand = Math.floor(Math.random() * 10000);
-    return ts * 10000 + rand;
+    return Math.floor(Date.now() / 1000);
   },
 
   async safeInsert(table, record) {
