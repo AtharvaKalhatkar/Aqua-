@@ -850,7 +850,7 @@ public class BillView extends VBox {
 
             String upiId = emailService.getUpiId();
             if (upiId == null || upiId.trim().isEmpty()) {
-                upiId = "kalhatkaratharva01@okhdfcbank"; // Robust business fallback
+                upiId = "7030355656-6@ibl"; // Robust business fallback
             }
 
             String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
@@ -926,7 +926,7 @@ public class BillView extends VBox {
 
                     String upiId = emailService.getUpiId();
                     if (upiId == null || upiId.trim().isEmpty()) {
-                        upiId = "kalhatkaratharva01@okhdfcbank";
+                        upiId = "7030355656-6@ibl";
                     }
 
                     String senderName = emailService.getSenderName() != null ? emailService.getSenderName()
@@ -1063,7 +1063,7 @@ public class BillView extends VBox {
 
             String upiId = emailService.getUpiId();
             if (upiId == null || upiId.isEmpty()) {
-                upiId = "kalhatkaratharva01@okhdfcbank"; // Robust fallback to ensure payment links are never missing
+                upiId = "7030355656-6@ibl"; // Robust fallback to ensure payment links are never missing
             }
             
             String senderName = emailService.getSenderName() != null ? emailService.getSenderName()

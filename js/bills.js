@@ -273,7 +273,7 @@ const Bills = {
       let mob = rawMob;
       if (mob.length === 10) mob = "91" + mob;
 
-      const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${decodedName},\nYour water delivery bill for *${fullMonths[curMonth]} ${curYear}* is ready.\n\n*Bill Summary:*\nJars (20L): ${jars} x ₹${jR} = ₹${Math.round(jA)}\nBottles (20L): ${bottles} x ₹${bR} = ₹${Math.round(bA)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
+      const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${decodedName},\nYour water delivery bill for *${fullMonths[curMonth]} ${curYear}* is ready.\n\n*Bill Summary:*\nJars (20L): ${jars} x ₹${jR} = ₹${Math.round(jA)}\nBottles (20L): ${bottles} x ₹${bR} = ₹${Math.round(bA)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
       const waUrl = `https://wa.me/${mob}?text=${encodeURIComponent(msg)}`;
       window.open(waUrl, '_blank');
@@ -300,7 +300,7 @@ const Bills = {
         return helper(num);
       }
 
-      const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+      const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
       
       const w = window.open('', '_blank');
@@ -405,7 +405,7 @@ const Bills = {
             <div class="foot-box" style="text-align:center;">
               <span class="b-bold">SCAN TO PAY</span>
               <img src="${qrUrl}" class="qr-img" alt="QR" />
-              <div style="font-size:9px; font-weight:bold;">kalhatkaratharva01@okhdfcbank</div>
+              <div style="font-size:9px; font-weight:bold;">7030355656-6@ibl</div>
             </div>
 
             <div class="foot-box sig-box" style="border:none;">
@@ -490,7 +490,7 @@ const Bills = {
         return helper(num);
       }
 
-      const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+      const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
       const w = window.open('', '_blank');
       const dateStr = new Date().toLocaleDateString('en-IN');
@@ -548,7 +548,7 @@ const Bills = {
           </div>
           <div class="footer-grid">
             <div class="foot-box"><strong>BANK DETAILS</strong><br>A/c Name: Bhairavnath Cool Aqua<br>Bank: LONAVALA SAHAKARI BANK<br>A/c No: 004002100000888<br>IFSC: HDFC0CLSABL</div>
-            <div class="foot-box" style="text-align:center;"><strong>SCAN TO PAY</strong><br><img src="${qrUrl}" style="width:80px;height:80px;"><br><div style="font-size:8px;">kalhatkaratharva01@okhdfcbank</div></div>
+            <div class="foot-box" style="text-align:center;"><strong>SCAN TO PAY</strong><br><img src="${qrUrl}" style="width:80px;height:80px;"><br><div style="font-size:8px;">7030355656-6@ibl</div></div>
             <div class="foot-box sig-box" style="border:none;"><br><div style="border-top:1px solid #666;margin:0 auto;width:80%;"></div><strong>For Bhairavnath Cool Aqua</strong><br>Authorized Signatory</div>
           </div>
           <div class="fine-print">This is a computer generated invoice. | Bhairavnath Cool Aqua</div>
@@ -563,7 +563,7 @@ const Bills = {
       if (mob.length === 10) mob = "91" + mob;
       
       const t = b.grand_total;
-      const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
+      const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
       window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
     };
@@ -577,7 +577,7 @@ const Bills = {
       
       const t = b.grand_total;
       const subject = `Bill - Bhairavnath Cool Aqua - ${fullMonths[b.bill_month]} ${b.bill_year}`;
-      const body = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below on mobile):\nupi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
+      const body = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below on mobile):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
       const link = document.createElement('a');
       link.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

@@ -26,7 +26,7 @@ import javax.imageio.ImageIO;
  */
 public class PDFGenerator {
 
-    private static final String UPI_ID = "kalhatkaratharva01@okhdfcbank";
+    private static final String UPI_ID = "7030355656-6@ibl";
     private static final String UPI_NAME = "Bhairavnath Cool Aqua";
 
     private static final BaseColor BLACK = BaseColor.BLACK;

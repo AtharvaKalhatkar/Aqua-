@@ -254,7 +254,7 @@ public class BroadcasterView extends VBox {
 
                     String upiId = emailService.getUpiId();
                     if (upiId == null || upiId.trim().isEmpty()) {
-                        upiId = "kalhatkaratharva01@okhdfcbank";
+                        upiId = "7030355656-6@ibl";
                     }
 
                     String senderName = emailService.getSenderName() != null ? emailService.getSenderName() : "Bhairavnath Cool Aqua";
