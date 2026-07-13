@@ -1,6 +1,7 @@
 /* ===== Customers Module ===== */
 const Customers = {
   allCustomers: [],
+  customerDues: {},
   selectedRoute: 'All',
 
   async load() {
@@ -9,10 +10,11 @@ const Customers = {
     // ⚡ Instant Cache Hydration
     let hydrated = false;
     const offline = localStorage.getItem('cache_customers');
+    const offlineDues = localStorage.getItem('cache_dues');
     if (offline) {
       try {
-        const parsed = JSON.parse(offline);
-        this.allCustomers = parsed || [];
+        this.allCustomers = JSON.parse(offline) || [];
+        this.customerDues = offlineDues ? JSON.parse(offlineDues) : {};
         this.renderRouteChips();
         this.renderList(this.allCustomers);
         hydrated = true;
@@ -21,19 +23,37 @@ const Customers = {
       }
     }
 
-    // Only show spinner if there was absolutely NO cached data to show!
     if (!hydrated) {
       div.innerHTML = '<div class="spinner"></div>';
     }
 
     try {
-      const { data, error } = await supabase.from('customers').select('*').order('name');
-      if (error) throw error;
+      // Fetch both customers and bills to calculate total due dynamically
+      const [custRes, billRes] = await Promise.all([
+        supabase.from('customers').select('*').order('name'),
+        supabase.from('bills').select('customer_id, grand_total, status')
+      ]);
+
+      if (custRes.error) throw custRes.error;
       
-      this.allCustomers = data || [];
+      this.allCustomers = custRes.data || [];
+      const bills = billRes.data || [];
       
-      // Update Local Storage for the next instant render!
+      // Calculate dues
+      this.customerDues = {};
+      this.allCustomers.forEach(c => {
+         let billed = 0;
+         let paid = c.total_paid || 0; // Manual partial payments tracking
+         let cbills = bills.filter(b => b.customer_id === c.id);
+         cbills.forEach(b => {
+           billed += (b.grand_total || 0);
+           if (b.status === 'PAID') paid += (b.grand_total || 0);
+         });
+         this.customerDues[c.id] = billed - paid;
+      });
+      
       localStorage.setItem('cache_customers', JSON.stringify(this.allCustomers));
+      localStorage.setItem('cache_dues', JSON.stringify(this.customerDues));
       
       this.renderRouteChips();
       this.renderList(this.allCustomers);
@@ -82,16 +102,29 @@ const Customers = {
     let html = '';
     customers.forEach(c => {
       const color = App.getAvatarColor(c.name);
+      const dueAmt = this.customerDues[c.id] || 0;
+      let dueBadge = '';
+      if (dueAmt > 0) {
+        dueBadge = `<span style="font-weight:800; color:#ef4444; font-size:13px; margin-left:auto;">₹${dueAmt} Due</span>`;
+      } else if (dueAmt < 0) {
+        dueBadge = `<span style="font-weight:800; color:#10b981; font-size:13px; margin-left:auto;">₹${Math.abs(dueAmt)} Adv</span>`;
+      } else {
+        dueBadge = `<span style="font-weight:800; color:#10b981; font-size:13px; margin-left:auto;">Clear</span>`;
+      }
+
       html += `<div class="list-item" onclick="Customers.showDetail(${c.id})">
         <div class="list-avatar" style="background:${color}">${c.name.charAt(0).toUpperCase()}</div>
-        <div class="list-content">
-          <div class="list-name">${c.name}</div>
-          <div class="list-detail">
-            ${c.route ? '<span class="badge badge-route"><i data-lucide="map-pin"></i> '+c.route+'</span>' : '<span style="opacity:0.5">No route assigned</span>'}
+        <div class="list-content" style="display:flex; flex-direction:row; align-items:center; width:100%;">
+          <div style="display:flex; flex-direction:column; flex:1;">
+            <div class="list-name">${c.name}</div>
+            <div class="list-detail">
+              ${c.route ? '<span class="badge badge-route"><i data-lucide="map-pin"></i> '+c.route+'</span>' : '<span style="opacity:0.5">No route assigned</span>'}
+            </div>
           </div>
+          ${dueBadge}
         </div>
         <div class="list-right">
-          ${c.mobile ? `<a href="tel:${c.mobile}" onclick="event.stopPropagation()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid var(--border-slate); color:var(--accent-cyan);"><i data-lucide="phone" style="width:14px; height:14px;"></i></a>` : ''}
+          ${c.mobile ? `<a href="tel:${c.mobile}" onclick="event.stopPropagation()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid var(--border-slate); color:var(--accent-cyan); margin-left:10px;"><i data-lucide="phone" style="width:14px; height:14px;"></i></a>` : ''}
         </div>
       </div>`;
     });
@@ -102,8 +135,26 @@ const Customers = {
   async showDetail(id) {
     const c = this.allCustomers.find(x => x.id === id);
     if (!c) return;
+    const dueAmt = this.customerDues[id] || 0;
+    
     App.showModal(`
-      <div class="modal-title"><i data-lucide="user"></i> Profile: ${c.name}</div>
+      <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <div><i data-lucide="user"></i> ${c.name}</div>
+      </div>
+      
+      <!-- Balance Card -->
+      <div style="background:linear-gradient(135deg, rgba(37,99,235,0.1), rgba(0,229,255,0.05)); border:1px solid var(--accent-cyan); border-radius:var(--radius-md); padding:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Total Outstanding</div>
+          <div style="font-size:24px; font-weight:800; color:${dueAmt > 0 ? '#ef4444' : (dueAmt < 0 ? '#10b981' : '#10b981')};">
+            ₹${Math.abs(dueAmt)} ${dueAmt > 0 ? 'Due' : (dueAmt < 0 ? 'Adv' : 'Clear')}
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="Customers.recordPayment(${c.id}, ${dueAmt}, '${c.mobile || ''}')" style="font-size:12px; padding:8px 12px; height:auto;">
+          <i data-lucide="indian-rupee" style="width:14px; height:14px;"></i> Record Pay
+        </button>
+      </div>
+
       <div style="background:var(--bg-slate); border:1px solid var(--border-slate); padding:20px; border-radius:var(--radius-md); margin-bottom:20px; display:flex; flex-direction:column; gap:14px;">
         <div style="display:flex; gap:10px; align-items:flex-start;">
           <i data-lucide="map" style="width:16px; height:16px; color:var(--text-muted); margin-top:2px;"></i>
@@ -140,15 +191,113 @@ const Customers = {
         </div>
       </div>
 
-      <button class="btn btn-primary" onclick="Customers.showEditForm(${c.id})">
+      ${dueAmt > 0 ? `
+        <button class="btn btn-outline" onclick="Customers.sendPaymentReminder('${c.name}', '${c.mobile || ''}', ${dueAmt})" style="border-color:#25D366; color:#25D366; width:100%; margin-bottom:10px;">
+          <i data-lucide="message-square"></i> Send Payment Reminder
+        </button>
+      ` : ''}
+
+      <button class="btn btn-outline" onclick="Customers.showEditForm(${c.id})" style="width:100%; margin-bottom:10px;">
         <i data-lucide="edit"></i> Edit Profile
       </button>
-      ${c.mobile ? `<a href="tel:${c.mobile}" class="btn btn-success mt-8" style="text-decoration:none;"><i data-lucide="phone-outgoing"></i> Make Direct Call</a>` : ''}
-      <button class="btn btn-danger mt-8" onclick="Customers.delete(${c.id})">
+      <button class="btn btn-danger" onclick="Customers.delete(${c.id})" style="width:100%;">
         <i data-lucide="trash-2"></i> Delete Client
       </button>
       <button class="btn btn-outline mt-8" onclick="App.closeModal()">Close</button>
     `);
+  },
+
+  recordPayment(id, dueAmt, mobile) {
+    App.showModal(`
+      <div class="modal-title" style="color:var(--accent-cyan);"><i data-lucide="indian-rupee"></i> Record Payment</div>
+      <p style="font-size:12px; color:var(--text-secondary); margin-bottom:20px;">
+        Total Outstanding: <strong>₹${dueAmt}</strong>
+      </p>
+      
+      <div class="form-group">
+        <label class="form-label">Amount Received (₹)</label>
+        <input class="form-input" type="number" id="payAmount" placeholder="e.g. 5000" style="font-size:20px; font-weight:800;">
+      </div>
+      
+      <button class="btn btn-primary mt-8" onclick="Customers.savePayment(${id}, ${dueAmt}, '${mobile}')" style="width:100%;">
+        <i data-lucide="check-circle"></i> Confirm Payment
+      </button>
+      <button class="btn btn-outline mt-8" onclick="Customers.showDetail(${id})" style="width:100%;">Cancel</button>
+    `);
+  },
+
+  async savePayment(id, currentDue, mobile) {
+    const amtStr = document.getElementById('payAmount').value;
+    const amt = parseFloat(amtStr);
+    if (!amt || amt <= 0) return App.toast('Enter a valid amount', 'warning');
+    
+    App.toast('Saving payment...', 'info');
+    const c = this.allCustomers.find(x => x.id === id);
+    const newTotalPaid = (c.total_paid || 0) + amt;
+    const newDue = currentDue - amt;
+
+    try {
+      const { error } = await supabase.from('customers').update({ total_paid: newTotalPaid }).eq('id', id);
+      if (error) {
+        if (error.code === 'PGRST204' || error.message.includes("Could not find the 'total_paid' column")) {
+           App.alert("CRITICAL ERROR: You have not created the 'total_paid' column in Supabase yet! Please go to Supabase -> Table Editor -> customers -> Add Column -> Name: 'total_paid', Type: 'float8', Default Value: '0'", 'error');
+           return;
+        }
+        throw error;
+      }
+      
+      // Update local cache manually
+      c.total_paid = newTotalPaid;
+      this.customerDues[id] = newDue;
+      
+      App.toast('Payment Recorded!', 'success');
+      
+      App.showModal(`
+        <div class="modal-title" style="color:#10b981;"><i data-lucide="check-circle"></i> Payment Saved</div>
+        <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px; text-align:center;">
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Amount Paid</div>
+          <div style="font-size:28px; font-weight:800; color:#10b981; margin-bottom:12px;">₹${amt}</div>
+          
+          <div style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; border-top:1px solid var(--border-slate); padding-top:12px;">Remaining Balance</div>
+          <div style="font-size:20px; font-weight:800; color:${newDue > 0 ? '#ef4444' : '#10b981'};">₹${newDue}</div>
+        </div>
+        
+        <button class="btn btn-outline" onclick="Customers.sharePaymentWhatsApp('${c.name}', '${mobile}', ${amt}, ${newDue})" style="border-color:#25D366; color:#25D366; width:100%; margin-bottom:12px;">
+          <i data-lucide="message-square"></i> Send WhatsApp Receipt
+        </button>
+        <button class="btn btn-primary" onclick="Customers.load(); App.closeModal();" style="width:100%;">Done</button>
+      `);
+      
+    } catch (e) {
+      App.toast('Error saving payment: ' + e.message, 'error');
+    }
+  },
+
+  sharePaymentWhatsApp(name, mobile, amt, newDue) {
+    if (!mobile) return App.toast('No mobile number saved for this customer', 'warning');
+    const rawMob = mobile.replace(/[^0-9]/g, "");
+    let mob = rawMob;
+    if (mob.length === 10) mob = "91" + mob;
+    
+    let msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nWe have received your payment of *₹${amt}*.\n`;
+    if (newDue > 0) {
+      msg += `Your remaining pending balance is *₹${newDue}*.\n\nPay instantly via UPI:\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${newDue}&cu=INR`;
+    } else {
+      msg += `Your account is fully cleared. Thank you!`;
+    }
+    
+    window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
+  },
+
+  sendPaymentReminder(name, mobile, dueAmt) {
+    if (!mobile) return App.toast('No mobile number saved for this customer', 'warning');
+    const rawMob = mobile.replace(/[^0-9]/g, "");
+    let mob = rawMob;
+    if (mob.length === 10) mob = "91" + mob;
+    
+    const msg = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nThis is a gentle reminder that your pending balance is *₹${dueAmt}*.\n\nKindly clear your dues via UPI link below:\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${dueAmt}&cu=INR`;
+    
+    window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
   },
 
   showAddForm() {
@@ -220,14 +369,20 @@ const Customers = {
     const name = document.getElementById('custName').value.trim();
     if (!name) { App.toast('Name is required', 'warning'); return; }
     try {
-      const res = await OfflineVault.safeInsert('customers', {
+      // Manually calculate next ID to bypass broken database sequence
+      const maxRes = await supabase.from('customers').select('id').order('id', { ascending: false }).limit(1);
+      const nextId = (maxRes.data && maxRes.data.length > 0) ? maxRes.data[0].id + 1 : 1;
+      
+      const record = {
+        id: nextId,
         name,
         address: document.getElementById('custAddress').value.trim(),
         mobile: document.getElementById('custMobile').value.trim(),
         route: document.getElementById('custRoute').value.trim(),
         email: document.getElementById('custEmail').value.trim()
-      });
-      if (res.error) throw res.error;
+      };
+      const { error } = await supabase.from('customers').insert(record);
+      if (error) throw error;
       App.closeModal();
       App.toast('Customer profile created successfully!');
       this.load();

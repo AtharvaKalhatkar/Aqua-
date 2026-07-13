@@ -2,23 +2,41 @@
 
 // --- PDF Generation & Sharing Helpers ---
 async function __genPDF(html) {
-  if (typeof html2pdf === 'undefined') {
-    throw new Error('PDF library (html2pdf) not loaded. Check internet connection.');
-  }
-  const el = document.createElement('div');
-  el.innerHTML = html;
-  el.style.position = 'fixed';
-  el.style.left = '-9999px';
-  el.style.top = '0';
-  document.body.appendChild(el);
-  try {
-    return await html2pdf()
-      .set({ margin: [10,10,10,10], image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: false }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
-      .from(el)
-      .outputPdf('blob');
-  } finally {
-    document.body.removeChild(el);
-  }
+  return new Promise((resolve, reject) => {
+    try {
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed; left:-9999px; top:0; width:595px; background:#fff; z-index:-1; padding:30px; box-sizing:border-box;';
+      container.innerHTML = html;
+      document.body.appendChild(container);
+      
+      const images = container.querySelectorAll('img');
+      const imgPromises = Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(r => { img.onload = r; img.onerror = r; });
+      });
+      
+      Promise.all(imgPromises).then(() => {
+        setTimeout(() => {
+          html2canvas(container, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff' }).then(canvas => {
+            document.body.removeChild(container);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const imgW = pageW - 20;
+            const imgH = (canvas.height * imgW) / canvas.width;
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 10, 10, imgW, Math.min(imgH, pageH - 20));
+            resolve(pdf.output('blob'));
+          }).catch(err => {
+            document.body.removeChild(container);
+            reject(err);
+          });
+        }, 500); // 500ms delay to ensure layout is fully resolved
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
 }
 
 
@@ -384,7 +402,7 @@ A/c No: 004002100000888
 IFSC: HDFC0CLSABL
 ─────────────────────
 ✅ *Pay instantly via UPI:*
-upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR
+upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR
 ─────────────────────
 Thank you for your business! 🙏
 - Bhairavnath Cool Aqua`;
@@ -392,7 +410,7 @@ Thank you for your business! 🙏
       // Try generating PDF + Web Share (sends PDF file + text directly to WhatsApp)
       try {
         const dateStr = new Date().toLocaleDateString('en-IN');
-        const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+        const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
@@ -405,8 +423,8 @@ Thank you for your business! 🙏
           <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
           <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
           <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
           <div class="fp">This is a computer generated estimate via Mobile App. | Bhairavnath Cool Aqua Management System</div>
         </body></html>`;
         const blob = await __genPDF(html);
@@ -420,7 +438,7 @@ Thank you for your business! 🙏
       // Fallback: download PDF + open WhatsApp text
       try {
         const dateStr = new Date().toLocaleDateString('en-IN');
-        const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+        const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
@@ -433,8 +451,8 @@ Thank you for your business! 🙏
           <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
           <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
           <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
           <div class="fp">This is a computer generated estimate via Mobile App. | Bhairavnath Cool Aqua Management System</div>
         </body></html>`;
         const blob = await __genPDF(html);
@@ -457,7 +475,7 @@ Thank you for your business! 🙏
       const bA = bottles * bR;
       const t = jA + bA;
       const dateStr = new Date().toLocaleDateString('en-IN');
-      const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+      const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
       const w = __invWords(Math.round(t));
       const html = `<html><head><style>${__invCSS()}</style></head><body>
@@ -470,8 +488,8 @@ Thank you for your business! 🙏
         <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
         <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
         <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-        <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-        <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+        <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+        <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
         <div class="fp">This is a computer generated estimate via Mobile App. | Bhairavnath Cool Aqua Management System</div>
       </body></html>`;
       try {
@@ -492,8 +510,8 @@ Thank you for your business! 🙏
           <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
           <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
           <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
           <div class="fp">This is a computer generated estimate via Mobile App. | Bhairavnath Cool Aqua Management System</div>
         </body></html>`);
         w.document.close();
@@ -563,7 +581,7 @@ Thank you for your business! 🙏
       const jR = b.jar_rate, bR = b.bottle_rate, jars = b.total_jars, bottles = b.total_bottles;
       const jA = b.jar_amount, bA = b.bottle_amount, t = b.grand_total;
       const dateStr = new Date().toLocaleDateString('en-IN');
-      const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+      const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
       const w = __invWords(Math.round(t));
       const invNo = `BCA-${b.bill_year % 100}${String(b.bill_month).padStart(2,'0')}-${b.id}`;
@@ -577,8 +595,8 @@ Thank you for your business! 🙏
         <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
         <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
         <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-        <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-        <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+        <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+        <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
         <div class="fp">This is a computer generated invoice. | Bhairavnath Cool Aqua Management System</div>
       </body></html>`;
       try {
@@ -599,8 +617,8 @@ Thank you for your business! 🙏
           <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
           <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
           <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
           <div class="fp">This is a computer generated invoice. | Bhairavnath Cool Aqua Management System</div>
         </body></html>`);
         w.document.close();
@@ -639,7 +657,7 @@ A/c No: 004002100000888
 IFSC: HDFC0CLSABL
 ─────────────────────
 ✅ *Pay instantly via UPI:*
-upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR
+upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR
 ─────────────────────
 Thank you for your business! 🙏
 - Bhairavnath Cool Aqua`;
@@ -647,7 +665,7 @@ Thank you for your business! 🙏
       // Try generating PDF + Web Share (sends PDF file + text directly to WhatsApp)
       try {
         const dateStr = new Date().toLocaleDateString('en-IN');
-        const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+        const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
@@ -660,8 +678,8 @@ Thank you for your business! 🙏
           <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
           <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
           <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
           <div class="fp">This is a computer generated invoice. | Bhairavnath Cool Aqua Management System</div>
         </body></html>`;
         const blob = await __genPDF(html);
@@ -675,7 +693,7 @@ Thank you for your business! 🙏
       // Fallback: download PDF + open WhatsApp text
       try {
         const dateStr = new Date().toLocaleDateString('en-IN');
-        const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+        const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
@@ -688,8 +706,8 @@ Thank you for your business! 🙏
           <tr class="trw"><td colspan="3"></td><td class="tr">TOTAL</td><td class="tr">₹${Math.round(t)}</td></tr></tbody></table>
           <div class="gb"><div><div style="font-size:10px;font-weight:bold;">Amount in Words:</div>${w} Rupees Only</div><div class="tr"><div style="font-size:11px;font-weight:bold;">GRAND TOTAL</div><div class="gv">₹ ${Math.round(t).toLocaleString('en-IN')}</div></div></div>
           <div class="fg"><div class="fb"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">BANK DETAILS</span><div>A/c Name: Bhairavnath Cool Aqua</div><div>Bank: LONAVALA SAHAKARI BANK LTD.</div><div>Branch: Talawade</div><div>A/c No: 004002100000888</div><div>IFSC: HDFC0CLSABL</div></div>
-          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">kalhatkaratharva01@okhdfcbank</div></div>
-          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;"></div><div style="font-weight:bold;font-size:10px;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;">Authorized Signatory</div></div></div>
+          <div class="fb" style="text-align:center;"><span style="font-weight:bold;display:block;margin-bottom:5px;font-size:10px;">SCAN TO PAY</span><img src="${qrUrl}" class="qr" alt="QR"><div style="font-size:9px;font-weight:bold;">7030355656-6@ibl</div></div>
+          <div class="fb" style="border:none;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;"><div style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; min-height:70px; position:relative;"><img src="icons/stamp.png" crossorigin="anonymous" style="height:75px; width:auto; object-fit:contain; opacity:0.85; position:absolute; bottom:5px; z-index:1;" onerror="this.style.display='none'"></div><div style="border-top:1px solid #666;width:80%;margin-bottom:5px;position:relative;z-index:2;"></div><div style="font-weight:bold;font-size:10px;position:relative;z-index:2;">For Bhairavnath Cool Aqua</div><div style="font-size:9px;position:relative;z-index:2;">Authorized Signatory</div></div></div>
           <div class="fp">This is a computer generated invoice. | Bhairavnath Cool Aqua Management System</div>
         </body></html>`;
         const blob = await __genPDF(html);
@@ -714,7 +732,7 @@ Thank you for your business! 🙏
       
       const t = b.grand_total;
       const subject = `Bill - Bhairavnath Cool Aqua - ${fullMonths[b.bill_month]} ${b.bill_year}`;
-      const body = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below on mobile):\nupi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
+      const body = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below on mobile):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
       
       const link = document.createElement('a');
       link.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -727,7 +745,7 @@ Thank you for your business! 🙏
       if (mob.length === 10) mob = "91" + mob;
       
       const t = b.grand_total;
-      const upiLink = `upi://pay?pa=kalhatkaratharva01@okhdfcbank&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
+      const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const msg = `॥ श्री भैरवनाथ प्रसन्न ॥\n*Payment Reminder* 💧\n\nHello ${name},\nYour water bill of *₹${Math.round(t).toLocaleString('en-IN')}* for *${fullMonths[b.bill_month]} ${b.bill_year}* is pending. \n\n✅ *Pay instantly via UPI (Click below):*\n${upiLink}\n\nThank you!\n- Bhairavnath Cool Aqua`;
 
       window.open(`https://wa.me/${mob}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -775,10 +793,6 @@ Thank you for your business! 🙏
       
       <button class="btn btn-outline" onclick="sendPaymentReminder()" style="border-color:#25D366; color:#25D366; width:100%; margin-bottom:10px;">
         <i data-lucide="bell"></i> Send Payment Reminder
-      </button>
-
-      <button class="btn btn-outline" onclick="sendEmailFinal()" style="border-color:var(--accent-cyan); color:var(--accent-cyan); width:100%;">
-        <i data-lucide="mail"></i> Email Client
       </button>
 
       <hr style="margin:20px 0; border:none; border-top:1px dashed var(--border-slate-bright);">
