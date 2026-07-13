@@ -150,9 +150,14 @@ const Customers = {
             ₹${Math.abs(dueAmt)} ${dueAmt > 0 ? 'Due' : (dueAmt < 0 ? 'Adv' : 'Clear')}
           </div>
         </div>
-        <button class="btn btn-primary" onclick="Customers.recordPayment(${c.id}, ${dueAmt}, '${c.mobile || ''}')" style="font-size:12px; padding:8px 12px; height:auto;">
-          <i data-lucide="indian-rupee" style="width:14px; height:14px;"></i> Record Pay
-        </button>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-primary" onclick="Customers.recordPayment(${c.id}, ${dueAmt}, '${c.mobile || ''}')" style="font-size:12px; padding:8px 12px; height:auto;">
+            <i data-lucide="indian-rupee" style="width:14px; height:14px;"></i> Record Pay
+          </button>
+          <button class="btn btn-outline" onclick="Customers.addPreviousDue(${c.id})" style="font-size:10px; padding:4px 8px; height:auto; color:var(--text-secondary); border-color:var(--border-slate-bright);">
+            <i data-lucide="plus" style="width:10px; height:10px;"></i> Add Due
+          </button>
+        </div>
       </div>
 
       <div style="background:var(--bg-slate); border:1px solid var(--border-slate); padding:20px; border-radius:var(--radius-md); margin-bottom:20px; display:flex; flex-direction:column; gap:14px;">
@@ -205,6 +210,53 @@ const Customers = {
       </button>
       <button class="btn btn-outline mt-8" onclick="App.closeModal()">Close</button>
     `);
+  },
+
+  addPreviousDue(id) {
+    App.showModal(`
+      <div class="modal-title" style="color:var(--accent-amber);"><i data-lucide="plus-circle"></i> Add Previous Dues</div>
+      <p style="font-size:12px; color:var(--text-secondary); margin-bottom:20px;">
+        This will instantly increase the total outstanding amount for past months.
+      </p>
+      
+      <div class="form-group">
+        <label class="form-label">Amount to Add (₹)</label>
+        <input class="form-input" type="number" id="prevDueAmt" placeholder="e.g. 500" style="font-size:20px; font-weight:800;">
+      </div>
+      
+      <button class="btn btn-primary mt-8" onclick="Customers.savePreviousDue(${id})" style="width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none;">
+        <i data-lucide="check-circle"></i> Add to Dues
+      </button>
+    `);
+  },
+
+  async savePreviousDue(id) {
+    const amt = parseFloat(document.getElementById('prevDueAmt').value);
+    if (!amt || amt <= 0) {
+      App.toast('Please enter a valid amount', 'warning');
+      return;
+    }
+    
+    try {
+      const record = {
+        customer_id: id,
+        bill_month: 0,
+        bill_year: 0,
+        total_jars: 0,
+        total_bottles: 0,
+        grand_total: amt,
+        status: 'PENDING'
+      };
+      
+      const { error } = await supabase.from('bills').insert(record);
+      if (error) throw error;
+      
+      App.closeModal();
+      App.toast('Previous due added successfully!', 'success');
+      this.load();
+    } catch(e) {
+      App.toast('Error adding due: ' + e.message, 'error');
+    }
   },
 
   recordPayment(id, dueAmt, mobile) {
