@@ -409,14 +409,14 @@ Thank you for your business! 🙏
 
       // Try generating PDF + Web Share (sends PDF file + text directly to WhatsApp)
       try {
-        const dateStr = new Date().toLocaleDateString('en-IN');
+        const dateStr = new Date(curYear, curMonth, 1).toLocaleDateString('en-IN');
         const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
           ${__invHeader()}
           <div class="inv-hd"><div class="inv-tt">INVOICE</div><div style="font-family:monospace;font-weight:bold;">Draft / Mobile</div><div><strong>Date:</strong> ${dateStr}</div></div>
-          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div>Month: <strong>${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
+          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[curMonth]} to ${new Date(curYear, curMonth, 0).getDate()} ${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
           <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
           <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${jars}</strong></td><td class="tc">₹${jR}</td><td class="tr"><strong>₹${Math.round(jA)}</strong></td></tr>
           <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${bottles}</strong></td><td class="tc">₹${bR}</td><td class="tr"><strong>₹${Math.round(bA)}</strong></td></tr>
@@ -437,14 +437,14 @@ Thank you for your business! 🙏
 
       // Fallback: download PDF + open WhatsApp text
       try {
-        const dateStr = new Date().toLocaleDateString('en-IN');
+        const dateStr = new Date(curYear, curMonth, 1).toLocaleDateString('en-IN');
         const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
           ${__invHeader()}
           <div class="inv-hd"><div class="inv-tt">INVOICE</div><div style="font-family:monospace;font-weight:bold;">Draft / Mobile</div><div><strong>Date:</strong> ${dateStr}</div></div>
-          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div>Month: <strong>${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
+          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[curMonth]} to ${new Date(curYear, curMonth, 0).getDate()} ${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
           <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
           <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${jars}</strong></td><td class="tc">₹${jR}</td><td class="tr"><strong>₹${Math.round(jA)}</strong></td></tr>
           <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${bottles}</strong></td><td class="tc">₹${bR}</td><td class="tr"><strong>₹${Math.round(bA)}</strong></td></tr>
@@ -474,14 +474,14 @@ Thank you for your business! 🙏
       const jA = jars * jR;
       const bA = bottles * bR;
       const t = jA + bA;
-      const dateStr = new Date().toLocaleDateString('en-IN');
+      const dateStr = new Date(curYear, curMonth, 1).toLocaleDateString('en-IN');
       const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
       const w = __invWords(Math.round(t));
       const html = `<html><head><style>${__invCSS()}</style></head><body>
         ${__invHeader()}
         <div class="inv-hd"><div class="inv-tt">INVOICE</div><div style="font-family:monospace;font-weight:bold;">Draft / Mobile</div><div><strong>Date:</strong> ${dateStr}</div></div>
-        <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div>Month: <strong>${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
+        <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[curMonth]} to ${new Date(curYear, curMonth, 0).getDate()} ${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
         <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
         <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${jars}</strong></td><td class="tc">₹${jR}</td><td class="tr"><strong>₹${Math.round(jA)}</strong></td></tr>
         <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${bottles}</strong></td><td class="tc">₹${bR}</td><td class="tr"><strong>₹${Math.round(bA)}</strong></td></tr>
@@ -503,7 +503,7 @@ Thank you for your business! 🙏
         w.document.write(`<html><head><title>Invoice_${decodedName}</title><style>${__invCSS()}</style></head><body>
           ${__invHeader()}
           <div class="inv-hd"><div class="inv-tt">INVOICE</div><div style="font-family:monospace;font-weight:bold;">Draft / Mobile</div><div><strong>Date:</strong> ${dateStr}</div></div>
-          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div>Month: <strong>${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
+          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${decodedName}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[curMonth]} to ${new Date(curYear, curMonth, 0).getDate()} ${fullMonths[curMonth]} ${curYear}</strong></div></div></div>
           <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
           <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${jars}</strong></td><td class="tc">₹${jR}</td><td class="tr"><strong>₹${Math.round(jA)}</strong></td></tr>
           <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${bottles}</strong></td><td class="tc">₹${bR}</td><td class="tr"><strong>₹${Math.round(bA)}</strong></td></tr>
@@ -580,15 +580,15 @@ Thank you for your business! 🙏
     window.printFinalized = async function() {
       const jR = b.jar_rate, bR = b.bottle_rate, jars = b.total_jars, bottles = b.total_bottles;
       const jA = b.jar_amount, bA = b.bottle_amount, t = b.grand_total;
-      const dateStr = new Date().toLocaleDateString('en-IN');
+      const dateStr = new Date(b.bill_year, b.bill_month, 1).toLocaleDateString('en-IN');
+      const invNo = `BCA-${b.bill_year % 100}${String(b.bill_month).padStart(2,'0')}-${b.id}`;
       const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
       const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
       const w = __invWords(Math.round(t));
-      const invNo = `BCA-${b.bill_year % 100}${String(b.bill_month).padStart(2,'0')}-${b.id}`;
       const html = `<html><head><style>${__invCSS()}</style></head><body>
         ${__invHeader()}
         <div class="inv-hd"><div class="inv-tt">INVOICE</div><div><strong>No:</strong> ${invNo}</div><div><strong>Date:</strong> ${dateStr}</div></div>
-        <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div><strong>${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
+        <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[b.bill_month]} to ${new Date(b.bill_year, b.bill_month, 0).getDate()} ${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
         <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
         <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${jars}</strong></td><td class="tc">₹${jR}</td><td class="tr"><strong>₹${Math.round(jA)}</strong></td></tr>
         <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${bottles}</strong></td><td class="tc">₹${bR}</td><td class="tr"><strong>₹${Math.round(bA)}</strong></td></tr>
@@ -610,7 +610,7 @@ Thank you for your business! 🙏
         w.document.write(`<html><head><title>Invoice_${name}</title><style>${__invCSS()}</style></head><body>
           ${__invHeader()}
           <div class="inv-hd"><div class="inv-tt">INVOICE</div><div><strong>No:</strong> ${invNo}</div><div><strong>Date:</strong> ${dateStr}</div></div>
-          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div><strong>${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
+          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[b.bill_month]} to ${new Date(b.bill_year, b.bill_month, 0).getDate()} ${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
           <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
           <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${jars}</strong></td><td class="tc">₹${jR}</td><td class="tr"><strong>₹${Math.round(jA)}</strong></td></tr>
           <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${bottles}</strong></td><td class="tc">₹${bR}</td><td class="tr"><strong>₹${Math.round(bA)}</strong></td></tr>
@@ -664,14 +664,14 @@ Thank you for your business! 🙏
 
       // Try generating PDF + Web Share (sends PDF file + text directly to WhatsApp)
       try {
-        const dateStr = new Date().toLocaleDateString('en-IN');
+        const dateStr = new Date(b.bill_year, b.bill_month, 1).toLocaleDateString('en-IN');
         const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
           ${__invHeader()}
           <div class="inv-hd"><div class="inv-tt">INVOICE</div><div><strong>No:</strong> ${invNo}</div><div><strong>Date:</strong> ${dateStr}</div></div>
-          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div><strong>${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
+          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[b.bill_month]} to ${new Date(b.bill_year, b.bill_month, 0).getDate()} ${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
           <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
           <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${b.total_jars}</strong></td><td class="tc">₹${b.jar_rate}</td><td class="tr"><strong>₹${Math.round(b.jar_amount)}</strong></td></tr>
           <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${b.total_bottles}</strong></td><td class="tc">₹${b.bottle_rate}</td><td class="tr"><strong>₹${Math.round(b.bottle_amount)}</strong></td></tr>
@@ -692,14 +692,14 @@ Thank you for your business! 🙏
 
       // Fallback: download PDF + open WhatsApp text
       try {
-        const dateStr = new Date().toLocaleDateString('en-IN');
+        const dateStr = new Date(b.bill_year, b.bill_month, 1).toLocaleDateString('en-IN');
         const upiLink = `upi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR`;
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=150&margin=1`;
         const w = __invWords(Math.round(t));
         const html = `<html><head><style>${__invCSS()}</style></head><body>
           ${__invHeader()}
           <div class="inv-hd"><div class="inv-tt">INVOICE</div><div><strong>No:</strong> ${invNo}</div><div><strong>Date:</strong> ${dateStr}</div></div>
-          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div><strong>${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
+          <div class="bg"><div class="bg1"><div class="bg-s">BILL TO</div><div style="font-size:15px;font-weight:bold;">${name}</div></div><div><div class="bg-s">BILLING PERIOD</div><div style="font-size:12px;"><strong>1 ${fullMonths[b.bill_month]} to ${new Date(b.bill_year, b.bill_month, 0).getDate()} ${fullMonths[b.bill_month]} ${b.bill_year}</strong></div></div></div>
           <table><thead><tr><th style="width:8%">#</th><th>Description</th><th style="width:15%">Qty</th><th style="width:15%">Rate</th><th style="width:20%">Amount</th></tr></thead>
           <tbody><tr><td class="tc">1</td><td>20 Ltr Water Jar</td><td class="tc"><strong>${b.total_jars}</strong></td><td class="tc">₹${b.jar_rate}</td><td class="tr"><strong>₹${Math.round(b.jar_amount)}</strong></td></tr>
           <tr><td class="tc">2</td><td>20 Ltr Water Bottle</td><td class="tc"><strong>${b.total_bottles}</strong></td><td class="tc">₹${b.bottle_rate}</td><td class="tr"><strong>₹${Math.round(b.bottle_amount)}</strong></td></tr>
