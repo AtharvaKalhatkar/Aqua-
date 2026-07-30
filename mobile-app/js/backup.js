@@ -529,6 +529,44 @@ const Backup = {
         </div>
       </div>
 
+      <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:rgba(99,102,241,0.08); display:flex; align-items:center; justify-content:center; color:#6366f1;">
+            <i data-lucide="table" style="width:20px; height:20px;"></i>
+          </div>
+          <div>
+            <div style="font-size:14px; font-weight:800; color:var(--text-primary);">All Customers Delivery Record</div>
+            <div style="font-size:10px; font-weight:600; color:var(--text-secondary);">Export all customer deliveries for a month</div>
+          </div>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:10px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; display:block;">Month</label>
+              <select id="excelAllMonth" class="form-input">
+                ${['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => `<option value="${i+1}" ${i===new Date().getMonth()?'selected':''}>${m}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; display:block;">Year</label>
+              <select id="excelAllYear" class="form-input">
+                ${[new Date().getFullYear()-1, new Date().getFullYear(), new Date().getFullYear()+1].map(y => `<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button class="btn btn-primary" onclick="Backup.handleAllCustomersDeliveryReport('download')" style="background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; width:100%;">
+            <i data-lucide="download"></i> Download
+          </button>
+          <button class="btn btn-outline" onclick="Backup.handleAllCustomersDeliveryReport('share')" style="border-color:var(--border-slate-bright); color:var(--text-primary); width:100%;">
+            <i data-lucide="share-2"></i> Share
+          </button>
+        </div>
+      </div>
+
       <div style="background:var(--bg-slate); border:1px solid var(--border-slate); border-radius:var(--radius-md); padding:20px;">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
           <div style="width:40px; height:40px; border-radius:12px; background:rgba(167,139,250,0.08); display:flex; align-items:center; justify-content:center; color:var(--accent-violet);">
@@ -1085,6 +1123,201 @@ const Backup = {
           }
         } else {
           App.toast('Sharing not supported on this browser. Downloading instead.', 'warning');
+          this.downloadBlob(blob, filename);
+        }
+      } else {
+        this.downloadBlob(blob, filename);
+      }
+    } catch(err) {
+      console.error(err);
+      App.toast('Error generating Report', 'error');
+    }
+  },
+
+  async handleAllCustomersDeliveryReport(action = 'download') {
+    const m = parseInt(document.getElementById('excelAllMonth').value);
+    const y = parseInt(document.getElementById('excelAllYear').value);
+    const monthEl = document.getElementById('excelAllMonth');
+    const monthName = monthEl.options[monthEl.selectedIndex]?.text || '';
+
+    App.toast(action === 'share' ? 'Preparing to share...' : 'Generating Report...', 'info');
+
+    try {
+      // Fetch all customers
+      const { data: customers, error: custErr } = await supabase
+        .from('customers')
+        .select('id, name')
+        .order('name');
+      if (custErr) throw custErr;
+
+      // Fetch all deliveries for the month
+      const start = `${y}-${String(m).padStart(2,'0')}-01`;
+      const nextM = m === 12 ? 1 : m + 1;
+      const nextY = m === 12 ? y + 1 : y;
+      const end = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
+
+      const { data: deliveries, error: delErr } = await supabase
+        .from('deliveries')
+        .select('*')
+        .gte('delivery_date', start)
+        .lt('delivery_date', end)
+        .order('delivery_date', { ascending: true });
+      if (delErr) throw delErr;
+
+      if (!window.ExcelJS) return App.toast('Excel library not loaded.', 'error');
+
+      // Get days in the month
+      const daysInMonth = new Date(y, m, 0).getDate();
+
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet('Delivery Record');
+
+      // Title Row
+      const lastCol = String.fromCharCode(65 + 1 + daysInMonth + 1); // A + name + days + total
+      const totalCols = 2 + daysInMonth + 2; // #, Name, day1..dayN, TotalJars, TotalBottles
+      ws.mergeCells(1, 1, 1, totalCols);
+      const titleCell = ws.getCell('A1');
+      titleCell.value = 'BHAIRAVNATH COOL AQUA';
+      titleCell.font = { name: 'Arial Black', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Subtitle Row
+      ws.mergeCells(2, 1, 2, totalCols);
+      const subCell = ws.getCell('A2');
+      subCell.value = `All Customers Delivery Record - ${monthName} ${y}`;
+      subCell.font = { name: 'Arial', size: 11, italic: true };
+      subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEBF8FF' } };
+
+      ws.addRow([]); // Row 3 empty
+
+      // Header Row: #, Customer Name, 1, 2, 3, ..., N, Total Jars, Total Bottles
+      const headerValues = ['#', 'Customer Name'];
+      for (let d = 1; d <= daysInMonth; d++) headerValues.push(d);
+      headerValues.push('Total Jars', 'Total Bottles');
+
+      const headerRow = ws.addRow(headerValues);
+      headerRow.font = { bold: true, size: 9, color: { argb: 'FFFFFFFF' } };
+      headerRow.height = 22;
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6366F1' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      });
+
+      // Build delivery map: custId -> { day -> { jars, bottles } }
+      const delMap = {};
+      (deliveries || []).forEach(d => {
+        const cid = d.customer_id;
+        const day = new Date(d.delivery_date).getDate();
+        if (!delMap[cid]) delMap[cid] = {};
+        if (!delMap[cid][day]) delMap[cid][day] = { jars: 0, bottles: 0 };
+        delMap[cid][day].jars += (d.jar_qty || 0);
+        delMap[cid][day].bottles += (d.bottle_qty || 0);
+      });
+
+      // Filter customers who have at least one delivery this month
+      const activeCusts = (customers || []).filter(c => delMap[c.id]);
+
+      let grandJars = 0, grandBottles = 0;
+
+      if (activeCusts.length === 0) {
+        ws.mergeCells(5, 1, 5, totalCols);
+        ws.getCell('A5').value = 'No deliveries found for this month.';
+        ws.getCell('A5').alignment = { horizontal: 'center' };
+      } else {
+        activeCusts.forEach((c, idx) => {
+          const rowVals = [idx + 1, c.name];
+          let custJars = 0, custBottles = 0;
+
+          for (let d = 1; d <= daysInMonth; d++) {
+            const dayData = delMap[c.id] && delMap[c.id][d];
+            if (dayData) {
+              const j = dayData.jars || 0;
+              const b = dayData.bottles || 0;
+              custJars += j;
+              custBottles += b;
+              // Show as "J/B" format
+              rowVals.push(j > 0 && b > 0 ? `${j}/${b}` : j > 0 ? `${j}J` : b > 0 ? `${b}B` : '');
+            } else {
+              rowVals.push('');
+            }
+          }
+
+          rowVals.push(custJars, custBottles);
+          grandJars += custJars;
+          grandBottles += custBottles;
+
+          const row = ws.addRow(rowVals);
+          row.eachCell((cell, colNum) => {
+            cell.alignment = { horizontal: colNum === 2 ? 'left' : 'center', vertical: 'middle' };
+            cell.font = { size: 9 };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+              bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+              left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+              right: { style: 'thin', color: { argb: 'FFDDDDDD' } }
+            };
+            // Alternate row colors
+            if (idx % 2 === 1) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+            }
+            // Total columns bold
+            if (colNum === totalCols - 1 || colNum === totalCols) {
+              cell.font = { size: 9, bold: true, color: { argb: 'FF2563EB' } };
+            }
+          });
+        });
+      }
+
+      // Grand Total Row
+      const totalVals = ['', 'GRAND TOTAL'];
+      for (let d = 1; d <= daysInMonth; d++) totalVals.push('');
+      totalVals.push(grandJars, grandBottles);
+
+      const totalRow = ws.addRow(totalVals);
+      totalRow.font = { bold: true, size: 10 };
+      totalRow.eachCell((cell, colNum) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
+        cell.alignment = { horizontal: colNum === 2 ? 'right' : 'center', vertical: 'middle' };
+        cell.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        if (colNum === totalCols - 1 || colNum === totalCols) {
+          cell.font = { bold: true, size: 11, color: { argb: 'FF4F46E5' } };
+        }
+      });
+
+      // Column widths
+      ws.getColumn(1).width = 4;  // #
+      ws.getColumn(2).width = 22; // Customer Name
+      for (let d = 1; d <= daysInMonth; d++) ws.getColumn(2 + d).width = 5;
+      ws.getColumn(totalCols - 1).width = 10; // Total Jars
+      ws.getColumn(totalCols).width = 12;     // Total Bottles
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const blob = new Blob([buffer], { type: mime });
+      const filename = `All_Customers_Delivery_${monthName}_${y}.xlsx`;
+
+      if (action === 'share') {
+        if (navigator.share) {
+          const file = new File([blob], filename, { type: mime });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ title: `All Customers Delivery - ${monthName} ${y}`, files: [file] });
+              App.toast('Shared successfully!', 'success');
+            } catch(e) {
+              if (e.name === 'NotAllowedError') {
+                App.toast('Browser blocked sharing. Downloading instead...', 'info');
+                this.downloadBlob(blob, filename);
+              } else if (e.name !== 'AbortError') {
+                App.toast('Error sharing file', 'error');
+              }
+            }
+          } else {
+            this.downloadBlob(blob, filename);
+          }
+        } else {
           this.downloadBlob(blob, filename);
         }
       } else {
