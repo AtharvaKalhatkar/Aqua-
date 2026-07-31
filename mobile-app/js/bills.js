@@ -88,7 +88,7 @@ function __invHeader() { return `
   <div style="text-align:center;margin-bottom:6px;"><img src="https://atharvakalhatkar.github.io/Aqua-/mobile-app/icons/logo.png" style="width:50px;height:50px;border-radius:50%;"></div>
   <div class="brand">BHAIRAVNATH COOL AQUA</div>
   <div class="addr">Bathe Wasti, Talawade, Tal. Haveli, Dist. Pune - 411 062</div>
-  <div class="phone">Mob: 7030355656 / 8888355656</div>
+  <div class="phone">Mob: 8888355656 / 7030355656</div>
   <div class="hr-tk"></div><div class="hr-tn"></div>
 `; }
 
@@ -381,7 +381,7 @@ const Bills = {
       const msg = `॥ श्री भैरवनाथ प्रसन्न ॥
 *BHAIRAVNATH COOL AQUA*
 Bathe Wasti, Talawade, Tal. Haveli, Dist. Pune - 411 062
-📞 7030355656 / 8888355656
+📞 8888355656 / 7030355656
 ─────────────────────
 *INVOICE (Draft)*
 📅 ${new Date().toLocaleDateString('en-IN')}
@@ -635,7 +635,7 @@ Thank you for your business! 🙏
       const msg = `॥ श्री भैरवनाथ प्रसन्न ॥
 *BHAIRAVNATH COOL AQUA*
 Bathe Wasti, Talawade, Tal. Haveli, Dist. Pune - 411 062
-📞 7030355656 / 8888355656
+📞 8888355656 / 7030355656
 ─────────────────────
 *INVOICE*
 🧾 No: ${invNo}
@@ -732,7 +732,7 @@ Thank you for your business! 🙏
       
       const t = b.grand_total;
       const subject = `Bill - Bhairavnath Cool Aqua - ${fullMonths[b.bill_month]} ${b.bill_year}`;
-      const body = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below on mobile):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 7030355656 / 8888355656`;
+      const body = `*Bhairavnath Cool Aqua* 💧\nDear ${name},\nYour water delivery bill for *${fullMonths[b.bill_month]} ${b.bill_year}* is ready.\n\n*Bill Summary:*\nJars (20L): ${b.total_jars} x ₹${b.jar_rate} = ₹${Math.round(b.jar_amount)}\nBottles (20L): ${b.total_bottles} x ₹${b.bottle_rate} = ₹${Math.round(b.bottle_amount)}\n--------------------\n*Grand Total: ₹${Math.round(t)}*\n\nPay instantly via UPI (Click below on mobile):\nupi://pay?pa=7030355656-6@ibl&pn=Bhairavnath%20Cool%20Aqua&am=${t}&cu=INR\n\nThank you for your business!\nMob: 8888355656 / 7030355656`;
       
       const link = document.createElement('a');
       link.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
