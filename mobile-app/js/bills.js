@@ -909,14 +909,25 @@ Thank you for your business! 🙏
       window.executeMobileBulkBilling = async function() {
           App.confirm('Generate ' + unbilledIds.length + ' invoices? Please ensure all rates are entered correctly.', () => {
               App.confirm('WARNING: Final Confirmation. Are you ABSOLUTELY sure? This will lock in the rates and instantly generate the bills.', async () => {
+                  // IMPORTANT: Capture all rate values from DOM BEFORE closing the modal
+                  const capturedRates = {};
+                  for (let cid of unbilledIds) {
+                      const jarEl = document.getElementById(`jar-rate-${cid}`);
+                      const botEl = document.getElementById(`bot-rate-${cid}`);
+                      capturedRates[cid] = {
+                          jarRate: jarEl ? (parseFloat(jarEl.value) || 0) : 0,
+                          botRate: botEl ? (parseFloat(botEl.value) || 0) : 0
+                      };
+                  }
+                  
                   App.closeModal();
                   App.toast('Processing ' + unbilledIds.length + ' bills...', 'info');
                   
                   let successCount = 0;
                   for (let cid of unbilledIds) {
                       const qty = delMap[cid];
-                      const jarRate = parseFloat(document.getElementById(`jar-rate-${cid}`).value) || 0;
-                      const botRate = parseFloat(document.getElementById(`bot-rate-${cid}`).value) || 0;
+                      const jarRate = capturedRates[cid].jarRate;
+                      const botRate = capturedRates[cid].botRate;
                       
                       const jA = qty.jars * jarRate;
                       const bA = qty.bottles * botRate;
